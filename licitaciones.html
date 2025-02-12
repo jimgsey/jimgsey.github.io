@@ -72,21 +72,35 @@
             text-decoration: none;
             display: inline-block;
         }
+        .load-more-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .load-more-container button {
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
     </style>
     <script>
-        // URL inicial del feed Atom
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
 
-        // Variable para almacenar todos los feeds cargados
         let allEntries = [];
-        let nextFeedUrl = initialFeedUrl; // URL del siguiente feed a cargar
+        let nextFeedUrl = initialFeedUrl;
 
         async function checkNewFeed() {
             try {
-                // Cargar los dos feeds más recientes
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+
                 const entries = await getRecentFeeds(2);
-                allEntries = entries; // Almacenar las entradas cargadas
-                // Mostrar las licitaciones
+                allEntries = entries; 
+
+                document.getElementById("status").style.display = "none";
+
                 fetchAndDisplayLicitaciones(allEntries);
             } catch (error) {
                 console.error(error);
@@ -94,9 +108,28 @@
             }
         }
 
+        async function loadMoreFeeds() {
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando más datos...";
+                document.getElementById("status").style.display = "block";
+
+                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
+
+                const entries = await getRecentFeeds(maxFeeds);
+                allEntries.push(...entries); 
+
+                document.getElementById("status").style.display = "none";
+
+                fetchAndDisplayLicitaciones(allEntries);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("status").innerText = "❌ Error al cargar más feeds.";
+            }
+        }
+
         async function getRecentFeeds(maxFeeds) {
             let entries = [];
-            let currentFeedUrl = initialFeedUrl;
+            let currentFeedUrl = nextFeedUrl;
             let feedCount = 0;
 
             while (currentFeedUrl && feedCount < maxFeeds) {
@@ -106,30 +139,17 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
 
-                // Obtener las entradas del feed actual
                 const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
                 entries.push(...feedEntries);
 
-                // Buscar el enlace "next" para cargar el siguiente feed
                 const nextLink = xmlDoc.querySelector('link[rel="next"]');
                 currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                 feedCount++;
             }
 
-            return entries;
-        }
+            nextFeedUrl = currentFeedUrl;
 
-        async function loadMoreFeeds() {
-            try {
-                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 2;
-                const entries = await getRecentFeeds(maxFeeds);
-                allEntries = entries; // Actualizar las entradas cargadas
-                // Mostrar las licitaciones
-                fetchAndDisplayLicitaciones(allEntries);
-            } catch (error) {
-                console.error(error);
-                document.getElementById("status").innerText = "❌ Error al cargar más feeds.";
-            }
+            return entries;
         }
 
         function fetchAndDisplayLicitaciones(entries) {
@@ -205,9 +225,10 @@
         <button onclick="checkNewFeed()">Aplicar Filtros</button>
     </div>
     <div class="load-more-container">
-        <input type="number" id="maxFeedsInput" placeholder="Número de feeds a cargar" min="1" value="2">
+        <input type="number" id="maxFeedsInput" placeholder="Número de feeds a cargar" min="1" value="1">
         <button onclick="loadMoreFeeds()">Cargar más historial</button>
     </div>
+    <p id="status" style="display: none;">🔍 Cargando datos...</p>
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
