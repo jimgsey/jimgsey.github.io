@@ -74,8 +74,19 @@
         }
     </style>
     <script>
-        async function fetchAndDisplayLicitaciones() {
+        async function checkNewFeed() {
             const feedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+            try {
+                const response = await fetch(feedUrl);
+                if (!response.ok) throw new Error("No se pudo obtener el feed.");
+                fetchAndDisplayLicitaciones(feedUrl);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("status").innerText = "❌ Error al obtener el feed.";
+            }
+        }
+
+        async function fetchAndDisplayLicitaciones(feedUrl) {
             try {
                 const response = await fetch(feedUrl);
                 if (!response.ok) throw new Error("No se pudo obtener el feed.");
@@ -83,6 +94,7 @@
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
                 const entries = xmlDoc.querySelectorAll("entry");
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th><th>Documentos</th></tr>";
                 
                 const procedureCodeMapping = {
                     "1": "Abierto",
@@ -95,45 +107,39 @@
                     "8": "Subasta Electrónica",
                     "9": "Concurso de Proyectos"
                 };
-                
-                let filteredEntries = Array.from(entries).map(entry => {
-                    return {
-                        title: entry.querySelector("title").textContent,
-                        updated: entry.querySelector("updated").textContent,
-                        link: entry.querySelector("link").getAttribute("href"),
-                        importe: entry.getElementsByTagName("cbc:TotalAmount")[0]?.textContent || "N/A",
-                        ubicacion: entry.getElementsByTagName("cbc:CityName")[0]?.textContent || "N/A",
-                        cpvs: Array.from(entry.getElementsByTagName("cbc:ItemClassificationCode")).map(el => el.textContent),
-                        procedureCode: procedureCodeMapping[entry.getElementsByTagName("cbc:ProcedureCode")[0]?.textContent] || "N/A"
-                    };
-                });
 
-                const cpvFilter = document.getElementById("cpvFilter").value;
-                const importeFilter = document.getElementById("importeFilter").value;
+                const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
+                const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
                 const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
-
-                if (cpvFilter) {
-                    filteredEntries = filteredEntries.filter(entry => entry.cpvs.includes(cpvFilter));
-                }
-                if (importeFilter) {
-                    filteredEntries = filteredEntries.filter(entry => parseFloat(entry.importe) >= parseFloat(importeFilter));
-                }
-                if (ubicacionFilter) {
-                    filteredEntries = filteredEntries.filter(entry => entry.ubicacion.toLowerCase().includes(ubicacionFilter));
-                }
-
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th></tr>";
                 
-                filteredEntries.forEach(entry => {
-                    tableContent += `<tr>
-                        <td>${entry.title}</td>
-                        <td>${entry.updated}</td>
-                        <td>${entry.cpvs.join(", ") || "N/A"}</td>
-                        <td>${entry.importe}</td>
-                        <td>${entry.procedureCode}</td>
-                        <td>${entry.ubicacion}</td>
-                        <td><a href='${entry.link}' target='_blank'>Ver Licitación</a></td>
-                    </tr>`;
+                entries.forEach(entry => {
+                    const title = entry.querySelector("title").textContent;
+                    const updated = entry.querySelector("updated").textContent;
+                    const link = entry.querySelector("link").getAttribute("href");
+                    const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
+                    const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+                    let ubicacion = "N/A";
+                    const ubicacionElement = entry.getElementsByTagName("cbc:CityName")[0];
+                    if (ubicacionElement) ubicacion = ubicacionElement.textContent.toLowerCase();
+                    const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
+                    const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
+                    
+                    const documentElements = entry.getElementsByTagName("cac:ExternalReference");
+                    const documentos = Array.from(documentElements).map((doc, index) => {
+                        const uriElement = doc.getElementsByTagName("cbc:URI")[0];
+                        return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
+                    });
+                    const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
+                    
+                    const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
+                    const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
+                    
+                    // Aplicar filtros
+                    if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
+                        (importe >= importeFilter) &&
+                        (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                    }
                 });
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
             } catch (error) {
@@ -142,7 +148,12 @@
             }
         }
 
-        window.onload = fetchAndDisplayLicitaciones;
+        function toggleVisibility(button) {
+            const content = button.nextElementSibling;
+            content.style.display = content.style.display === "block" ? "none" : "block";
+        }
+
+        window.onload = checkNewFeed;
     </script>
 </head>
 <body>
@@ -151,7 +162,7 @@
         <input type="text" id="cpvFilter" placeholder="Código CPV">
         <input type="text" id="importeFilter" placeholder="Importe mínimo">
         <input type="text" id="ubicacionFilter" placeholder="Ubicación">
-        <button onclick="fetchAndDisplayLicitaciones()">Aplicar Filtros</button>
+        <button onclick="fetchAndDisplayLicitaciones('https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom')">Aplicar Filtros</button>
     </div>
     <p id="status">🔍 Cargando datos...</p>
     <h3>Licitaciones:</h3>
