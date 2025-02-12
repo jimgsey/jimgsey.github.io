@@ -74,26 +74,66 @@
         }
     </style>
     <script>
+        // URL inicial del feed Atom
+        const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+
+        // Variable para almacenar todos los feeds cargados
+        let allEntries = [];
+        let nextFeedUrl = initialFeedUrl; // URL del siguiente feed a cargar
+
         async function checkNewFeed() {
-            const feedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
             try {
-                const response = await fetch(feedUrl);
-                if (!response.ok) throw new Error("No se pudo obtener el feed.");
-                fetchAndDisplayLicitaciones(feedUrl);
+                // Cargar los dos feeds más recientes
+                const entries = await getRecentFeeds(2);
+                allEntries = entries; // Almacenar las entradas cargadas
+                // Mostrar las licitaciones
+                fetchAndDisplayLicitaciones(allEntries);
             } catch (error) {
                 console.error(error);
-                document.getElementById("status").innerText = "❌ Error al obtener el feed.";
+                document.getElementById("status").innerText = "❌ Error al obtener los feeds.";
             }
         }
 
-        async function fetchAndDisplayLicitaciones(feedUrl) {
-            try {
-                const response = await fetch(feedUrl);
-                if (!response.ok) throw new Error("No se pudo obtener el feed.");
+        async function getRecentFeeds(maxFeeds) {
+            let entries = [];
+            let currentFeedUrl = initialFeedUrl;
+            let feedCount = 0;
+
+            while (currentFeedUrl && feedCount < maxFeeds) {
+                const response = await fetch(currentFeedUrl);
+                if (!response.ok) throw new Error(`No se pudo obtener el feed: ${currentFeedUrl}`);
                 const text = await response.text();
                 const parser = new DOMParser();
                 const xmlDoc = parser.parseFromString(text, "text/xml");
-                const entries = xmlDoc.querySelectorAll("entry");
+
+                // Obtener las entradas del feed actual
+                const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
+                entries.push(...feedEntries);
+
+                // Buscar el enlace "next" para cargar el siguiente feed
+                const nextLink = xmlDoc.querySelector('link[rel="next"]');
+                currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
+                feedCount++;
+            }
+
+            return entries;
+        }
+
+        async function loadMoreFeeds() {
+            try {
+                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 2;
+                const entries = await getRecentFeeds(maxFeeds);
+                allEntries = entries; // Actualizar las entradas cargadas
+                // Mostrar las licitaciones
+                fetchAndDisplayLicitaciones(allEntries);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("status").innerText = "❌ Error al cargar más feeds.";
+            }
+        }
+
+        function fetchAndDisplayLicitaciones(entries) {
+            try {
                 let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th><th>Documentos</th></tr>";
                 
                 const procedureCodeMapping = {
@@ -144,7 +184,7 @@
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
             } catch (error) {
                 console.error(error);
-                document.getElementById("status").innerText = "❌ Error al obtener las licitaciones.";
+                document.getElementById("status").innerText = "❌ Error al mostrar las licitaciones.";
             }
         }
 
@@ -162,9 +202,12 @@
         <input type="text" id="cpvFilter" placeholder="Código CPV">
         <input type="text" id="importeFilter" placeholder="Importe mínimo">
         <input type="text" id="ubicacionFilter" placeholder="Ubicación">
-        <button onclick="fetchAndDisplayLicitaciones('https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom')">Aplicar Filtros</button>
+        <button onclick="checkNewFeed()">Aplicar Filtros</button>
     </div>
-    <p id="status">🔍 Cargando datos...</p>
+    <div class="load-more-container">
+        <input type="number" id="maxFeedsInput" placeholder="Número de feeds a cargar" min="1" value="2">
+        <button onclick="loadMoreFeeds()">Cargar más historial</button>
+    </div>
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
