@@ -9,24 +9,18 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center; 
         }
         h2 {
             text-align: center;
         }
-        .filter-container, .load-more-container {
+        .filter-container {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
-            justify-content: center; 
+            justify-content: center;
             margin-bottom: 20px;
-            width: 100%; 
-            max-width: 800px; 
         }
-        .filter-container input, .filter-container select, .filter-container button,
-        .load-more-container input, .load-more-container button {
+        .filter-container input, .filter-container select, .filter-container button {
             padding: 8px;
             border-radius: 5px;
             border: 1px solid #ccc;
@@ -58,12 +52,11 @@
             table, th, td {
                 font-size: 12px;
             }
-            .filter-container, .load-more-container {
+            .filter-container {
                 flex-direction: column;
                 align-items: center;
             }
-            .filter-container input, .filter-container select, .filter-container button,
-            .load-more-container input, .load-more-container button {
+            .filter-container input, .filter-container select, .filter-container button {
                 width: 100%;
             }
         }
@@ -79,9 +72,10 @@
             text-decoration: none;
             display: inline-block;
         }
-        .progress-indicator {
-            margin-top: 10px;
+        .error-message {
+            color: red;
             font-weight: bold;
+            margin-top: 20px;
             text-align: center;
         }
     </style>
@@ -93,31 +87,33 @@
         let isProcessing = false;
 
         async function checkNewFeed() {
-            if (isProcessing) return; 
+            if (isProcessing) return;
             isProcessing = true;
 
             try {
                 document.getElementById("status").innerText = "🔍 Cargando datos...";
                 document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
 
                 await loadFeedsInBatches(1);
 
                 document.getElementById("status").style.display = "none";
             } catch (error) {
                 console.error(error);
-                document.getElementById("status").innerText = "❌ Error al obtener el historial.";
+                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
             } finally {
                 isProcessing = false;
             }
         }
 
         async function loadMoreFeeds() {
-            if (isProcessing) return; 
+            if (isProcessing) return;
             isProcessing = true;
 
             try {
                 document.getElementById("status").innerText = "🔍 Cargando más datos...";
                 document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
 
                 const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
 
@@ -126,7 +122,7 @@
                 document.getElementById("status").style.display = "none";
             } catch (error) {
                 console.error(error);
-                document.getElementById("status").innerText = "❌ Error al cargar más feeds.";
+                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
             } finally {
                 isProcessing = false;
             }
@@ -139,22 +135,28 @@
             while (currentFeedUrl && feedCount < maxFeeds) {
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
 
-                const response = await fetch(currentFeedUrl);
-                if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
-                const text = await response.text();
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(text, "text/xml");
+                try {
+                    const response = await fetch(currentFeedUrl);
+                    if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, "text/xml");
 
-                const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
-                allEntries.push(...feedEntries);
+                    const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
+                    allEntries.push(...feedEntries);
 
-                const nextLink = xmlDoc.querySelector('link[rel="next"]');
-                currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
-                feedCount++;
+                    const nextLink = xmlDoc.querySelector('link[rel="next"]');
+                    currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
+                    feedCount++;
 
-                if (feedCount % 1 === 0) { 
-                    fetchAndDisplayLicitaciones(allEntries);
-                    await new Promise(resolve => setTimeout(resolve, 100)); // Pequeña pausa para evitar bloqueos
+                    if (feedCount % 1 === 0) {
+                        fetchAndDisplayLicitaciones(allEntries);
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeña pausa para evitar bloqueos
+                    }
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
+                    throw error; // Relanzar el error para que sea capturado por la función superior
                 }
             }
 
@@ -166,7 +168,7 @@
         function fetchAndDisplayLicitaciones(entries) {
             try {
                 let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th><th>Documentos</th></tr>";
-                
+
                 const procedureCodeMapping = {
                     "1": "Abierto",
                     "2": "Restringido",
@@ -182,7 +184,7 @@
                 const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
                 const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
                 const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
-                
+
                 entries.forEach(entry => {
                     const title = entry.querySelector("title").textContent;
                     const updated = entry.querySelector("updated").textContent;
@@ -194,17 +196,17 @@
                     if (ubicacionElement) ubicacion = ubicacionElement.textContent.toLowerCase();
                     const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
                     const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
-                    
+
                     const documentElements = entry.getElementsByTagName("cac:ExternalReference");
                     const documentos = Array.from(documentElements).map((doc, index) => {
                         const uriElement = doc.getElementsByTagName("cbc:URI")[0];
                         return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
                     });
                     const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
-                    
+
                     const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
                     const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
-                    
+
                     // Aplicar filtros
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
@@ -215,7 +217,7 @@
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
             } catch (error) {
                 console.error(error);
-                document.getElementById("status").innerText = "❌ Error al mostrar las licitaciones.";
+                document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
             }
         }
 
@@ -241,6 +243,7 @@
         <div id="progress" class="progress-indicator"></div>
     </div>
     <p id="status" style="display: none;">🔍 Cargando datos...</p>
+    <p id="error" class="error-message"></p> <!-- Mensaje de error -->
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
