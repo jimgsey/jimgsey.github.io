@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
- <style>
+    <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -66,6 +66,11 @@
             .load-more-container input, .load-more-container button {
                 width: 100%;
             }
+            table {
+                display: block;
+                overflow-x: auto;
+                white-space: nowrap;
+            }
         }
         .document-list {
             display: none;
@@ -99,10 +104,19 @@
         .atom-link:hover {
             text-decoration: underline;
         }
+        .ver-licitacion-button {
+            background-color: #007bff;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+            cursor: pointer;
+        }
     </style>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
-        const proxyUrl = "https://koprulu1.global.ssl.fastly.net/yt2/index.php/?url=";
+        const proxyUrl = "https://koprulu1.global.ssl.fastly.net/yt2/index.php/?url="; // Proxy CORS
 
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
@@ -274,7 +288,7 @@
                         (importe >= importeFilter) &&
                         (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
                         (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter))) {
-                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${cliente}</td><td>${contractNotification}</td><td>${fechaAnuncio}</td><td>${fechaFinal}</td><td>${estado}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${cliente}</td><td>${contractNotification}</td><td>${fechaAnuncio}</td><td>${fechaFinal}</td><td>${estado}</td><td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
                     }
                 });
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
