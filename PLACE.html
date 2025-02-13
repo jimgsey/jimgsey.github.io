@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
-    <style>
+  <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -71,12 +71,6 @@
                 overflow-x: auto;
                 white-space: nowrap;
             }
-            .mobile-details {
-                display: none;
-            }
-            .mobile-details.show {
-                display: block;
-            }
         }
         .document-list {
             display: none;
@@ -118,20 +112,6 @@
             text-decoration: none;
             display: inline-block;
             cursor: pointer;
-        }
-        .mobile-toggle {
-            display: none;
-        }
-        @media (max-width: 600px) {
-            .mobile-toggle {
-                display: inline-block;
-                background-color: #007bff;
-                color: white;
-                padding: 5px 10px;
-                border-radius: 5px;
-                cursor: pointer;
-                margin: 5px 0;
-            }
         }
     </style>
     <script>
@@ -251,7 +231,7 @@
             try {
                 const atomLinkElement = document.getElementById("atomLink");
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-                atomLinkElement.innerText = `Ver historial Atom (${nextFeedUrl ? "Último" : "Inicial"})`;
+                atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
                 let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
