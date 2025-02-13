@@ -9,18 +9,24 @@
             font-family: Arial, sans-serif;
             margin: 0;
             padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         h2 {
             text-align: center;
         }
-        .filter-container {
+        .filter-container, .load-more-container {
             display: flex;
             flex-wrap: wrap;
             gap: 10px;
             justify-content: center;
             margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
         }
-        .filter-container input, .filter-container select, .filter-container button {
+        .filter-container input, .filter-container select, .filter-container button,
+        .load-more-container input, .load-more-container button {
             padding: 8px;
             border-radius: 5px;
             border: 1px solid #ccc;
@@ -52,11 +58,12 @@
             table, th, td {
                 font-size: 12px;
             }
-            .filter-container {
+            .filter-container, .load-more-container {
                 flex-direction: column;
                 align-items: center;
             }
-            .filter-container input, .filter-container select, .filter-container button {
+            .filter-container input, .filter-container select, .filter-container button,
+            .load-more-container input, .load-more-container button {
                 width: 100%;
             }
         }
@@ -72,6 +79,11 @@
             text-decoration: none;
             display: inline-block;
         }
+        .progress-indicator {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
         .error-message {
             color: red;
             font-weight: bold;
@@ -85,6 +97,27 @@
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
+
+        // Función para fetch con timeout
+        async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                    }
+                });
+                clearTimeout(id);
+                return response;
+            } catch (error) {
+                clearTimeout(id);
+                throw error;
+            }
+        }
 
         async function checkNewFeed() {
             if (isProcessing) return;
@@ -136,7 +169,7 @@
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
 
                 try {
-                    const response = await fetch(currentFeedUrl);
+                    const response = await fetchWithTimeout(currentFeedUrl);
                     if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
                     const text = await response.text();
                     const parser = new DOMParser();
@@ -161,7 +194,6 @@
             }
 
             nextFeedUrl = currentFeedUrl;
-
             fetchAndDisplayLicitaciones(allEntries);
         }
 
