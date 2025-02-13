@@ -54,9 +54,9 @@
             background-color: #007bff;
             color: white;
         }
-        @media (max-width: 600px) {
+        @media (max-width: 100px) {
             table, th, td {
-                font-size: 12px;
+                font-size: 9px;
             }
             .filter-container, .load-more-container {
                 flex-direction: column;
@@ -232,7 +232,7 @@
                 const atomLinkElement = document.getElementById("atomLink");
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
                 atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Enlace</th><th>Documentos</th></tr>";
+                let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
                     "2": "Restringido",
@@ -290,7 +290,6 @@
                         (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter))) {
                         tableContent += `<tr>
                             <td>${title}</td>
-                            <td>${updated}</td>
                             <td>${cpvs.join(", ") || "N/A"}</td>
                             <td>${importe}</td>
                             <td>${procedureCode}</td>
@@ -299,6 +298,7 @@
                             <td>${fechaAnuncio}</td>
                             <td>${fechaFinal}</td>
                             <td>${estado}</td>
+							<td>${updated}</td>
                             <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
                             <td>${documentosHTML}</td>
                         </tr>`;
