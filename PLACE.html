@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
-    <style>
+ <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -102,10 +102,20 @@
     </style>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+        const proxyUrl = "https://koprulu1.global.ssl.fastly.net/yt2/index.php/?url=";
 
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
+
+        const estadoMapping = {
+            "PRE": "Anuncio Previo",
+            "PUB": "EN PLAZO",
+            "EV": "PENDIENTE DE ADJUDICACION",
+            "ADJ": "Adjudicada",
+            "RES": "Resuelta",
+            "ANUL": "Anulada"
+        };
 
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
@@ -121,7 +131,7 @@
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             try {
-                const response = await fetch(url, {
+                const response = await fetch(proxyUrl + url, { // Usar proxy CORS
                     ...options,
                     signal: controller.signal,
                     headers: {
@@ -178,7 +188,9 @@
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
                 try {
                     const response = await fetchWithTimeout(currentFeedUrl);
-                    if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
+                    if (!response.ok) {
+                        throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}. Estado: ${response.status}`);
+                    }
                     const text = await response.text();
                     const parser = new DOMParser();
                     const xmlDoc = parser.parseFromString(text, "text/xml");
@@ -205,8 +217,8 @@
             try {
                 const atomLinkElement = document.getElementById("atomLink");
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-                atomLinkElement.innerText = `Ver el Atom más actual (${nextFeedUrl ? "Historial en XML" : "Inicial"})`;
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Presentación</th><th>Enlace</th><th>Documentos</th></tr>";
+                atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
                     "2": "Restringido",
@@ -220,16 +232,21 @@
                 };
                 const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
                 const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
-                const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
+                const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
+                const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
                 entries.forEach(entry => {
                     const title = entry.querySelector("title")?.textContent || "N/A";
                     const updated = entry.querySelector("updated")?.textContent || "N/A";
                     const link = entry.querySelector("link")?.getAttribute("href") || "#";
                     const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
                     const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
-                    let ubicacion = "N/A";
-                    const ubicacionElement = entry.getElementsByTagName("cbc:CityName")[0];
-                    if (ubicacionElement) ubicacion = ubicacionElement.textContent.toLowerCase();
+                    const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
+                    const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
+                    const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
+                    const buyerProfile = buyerProfileElement 
+                        ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>` 
+                        : "N/A";
+                    const cliente = `${clienteName}<br>${buyerProfile}`;
                     const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
                     const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
                     const documentElements = entry.getElementsByTagName("cac:ExternalReference");
@@ -250,10 +267,14 @@
                     const fechaFinal = tenderDeadlineElement 
                         ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
                         : "N/A";
+                    const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
+                    const estadoCode = estadoElement ? estadoElement.textContent : "N/A";
+                    const estado = estadoMapping[estadoCode] || "N/A";
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
-                        (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
-                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td>${contractNotification}</td><td>${fechaAnuncio}</td><td>${fechaFinal}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                        (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
+                        (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter))) {
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${cliente}</td><td>${contractNotification}</td><td>${fechaAnuncio}</td><td>${fechaFinal}</td><td>${estado}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
                     }
                 });
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
@@ -276,7 +297,8 @@
     <div class="filter-container">
         <input type="text" id="cpvFilter" placeholder="Código CPV">
         <input type="text" id="importeFilter" placeholder="Importe mínimo">
-        <input type="text" id="ubicacionFilter" placeholder="Ubicación">
+        <input type="text" id="clienteFilter" placeholder="Cliente">
+        <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
         <button onclick="checkNewFeed()">Aplicar Filtros</button>
     </div>
     <div class="load-more-container">
@@ -286,7 +308,7 @@
     </div>
     <p id="status" style="display: none;">🔍 Cargando datos...</p>
     <p id="error" class="error-message"></p>
-    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver historial Atom más actual</a>
+    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver Atom más actual</a>
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
