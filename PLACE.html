@@ -205,7 +205,7 @@
             try {
                 const atomLinkElement = document.getElementById("atomLink");
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-                atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
+                atomLinkElement.innerText = `Ver el Atom más actual (${nextFeedUrl ? "Historial en XML" : "Inicial"})`;
                 let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Presentación</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
