@@ -12,9 +12,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            font-size: 14px;
         }
         h2 {
             text-align: center;
+            font-size: 18px;
         }
         .filter-container, .load-more-container {
             display: flex;
@@ -30,6 +32,7 @@
             padding: 8px;
             border-radius: 5px;
             border: 1px solid #ccc;
+            font-size: 12px;
         }
         button {
             background-color: #007bff;
@@ -38,12 +41,14 @@
             border: none;
             padding: 10px;
             border-radius: 5px;
+            font-size: 12px;
         }
         table {
             width: 100%;
             border-collapse: collapse;
             overflow-x: auto;
             display: block;
+            font-size: 12px;
         }
         th, td {
             border: 1px solid #ddd;
@@ -54,9 +59,9 @@
             background-color: #007bff;
             color: white;
         }
-        @media (max-width: 100px) {
+        @media (max-width: 600px) {
             table, th, td {
-                font-size: 9px;
+                font-size: 10px;
             }
             .filter-container, .load-more-container {
                 flex-direction: column;
@@ -83,21 +88,24 @@
             border-radius: 5px;
             text-decoration: none;
             display: inline-block;
+            font-size: 12px;
         }
         .progress-indicator {
             margin-top: 10px;
             font-weight: bold;
             text-align: center;
+            font-size: 12px;
         }
         .error-message {
             color: red;
             font-weight: bold;
             margin-top: 20px;
             text-align: center;
+            font-size: 12px;
         }
         .atom-link {
             margin-bottom: 20px;
-            font-size: 16px;
+            font-size: 14px;
             color: #007bff;
             text-decoration: none;
         }
@@ -112,11 +120,12 @@
             text-decoration: none;
             display: inline-block;
             cursor: pointer;
+            font-size: 12px;
         }
     </style>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
-        const proxyUrl = "https://corsmirror.com/v1?url="; // Proxy CORS
+        const proxyUrl = "https://corsmirror.com/v1?url=";
 
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
@@ -138,14 +147,17 @@
             const day = String(date.getDate()).padStart(2, '0');
             const month = String(date.getMonth() + 1).padStart(2, '0');
             const year = date.getFullYear();
-            return `${day}/${month}/${year}`;
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+            return `${day}/${month}/${year} // ${hours}:${minutes}:${seconds}`;
         }
 
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
             try {
-                const response = await fetch(proxyUrl + url, { // Usar proxy CORS
+                const response = await fetch(proxyUrl + url, {
                     ...options,
                     signal: controller.signal,
                     headers: {
@@ -231,7 +243,7 @@
             try {
                 const atomLinkElement = document.getElementById("atomLink");
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-                atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
+                atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
                 let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
@@ -300,7 +312,7 @@
                             <td>${fechaAnuncio}</td>
                             <td>${fechaFinal}</td>
                             <td>${estado}</td>
-                            <td>${updated}</td>
+                            <td>${formatDate(updated)}</td>
                             <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
                             <td>${documentosHTML}</td>
                         </tr>`;
@@ -322,7 +334,7 @@
     </script>
 </head>
 <body>
-    <h2>Monitor de Licitaciones</h2>
+    <h2>Licitaciones PLACE</h2>
     <div class="filter-container">
         <input type="text" id="cpvFilter" placeholder="Código CPV">
         <input type="text" id="importeFilter" placeholder="Importe mínimo">
@@ -346,7 +358,7 @@
     </div>
     <p id="status" style="display: none;">🔍 Cargando datos...</p>
     <p id="error" class="error-message"></p>
-    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver Atom más actual</a>
+    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
