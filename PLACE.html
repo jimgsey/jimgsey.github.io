@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monitor de Licitaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+        .filter-container input, .filter-container button {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        @media (max-width: 600px) {
+            table, th, td {
+                font-size: 12px;
+            }
+            .filter-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .filter-container input, .filter-container button {
+                width: 100%;
+            }
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+    <script>
+        const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+
+        async function fetchFeed(url) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("No se pudo obtener el feed.");
+                const text = await response.text();
+                return text;
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error al obtener el feed: ${error.message}`;
+                return null;
+            }
+        }
+
+        function parseAtomFeed(atomText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(atomText, "text/xml");
+
+            const entries = xmlDoc.querySelectorAll("entry");
+            const data = [];
+
+            entries.forEach(entry => {
+                const title = entry.querySelector("title").textContent;
+                const updated = entry.querySelector("updated").textContent;
+                const link = entry.querySelector("link").getAttribute("href");
+                const cpvElements = entry.querySelectorAll("cbc\\:ItemClassificationCode, ItemClassificationCode");
+                const cpvs = Array.from(cpvElements).map(el => el.textContent).join(", ");
+                const importeElement = entry.querySelector("cbc\\:TotalAmount, TotalAmount");
+                const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+                const ubicacionElement = entry.querySelector("cbc\\:CityName, CityName");
+                const ubicacion = ubicacionElement ? ubicacionElement.textContent : "N/A";
+
+                data.push({
+                    title,
+                    updated,
+                    link,
+                    cpvs,
+                    importe,
+                    ubicacion
+                });
+            });
+
+            return data;
+        }
+
+        function displayLicitaciones(data) {
+            const tableContent = `
+                <tr>
+                    <th>Título</th>
+                    <th>Fecha</th>
+                    <th>CPV</th>
+                    <th>Importe</th>
+                    <th>Ubicación</th>
+                    <th>Enlace</th>
+                </tr>
+                ${data.map(entry => `
+                    <tr>
+                        <td>${entry.title}</td>
+                        <td>${entry.updated}</td>
+                        <td>${entry.cpvs}</td>
+                        <td>${entry.importe}</td>
+                        <td>${entry.ubicacion}</td>
+                        <td><a href="${entry.link}" target="_blank">Ver Licitación</a></td>
+                    </tr>
+                `).join("")}
+            `;
+
+            document.getElementById("licitacionesTable").innerHTML = tableContent;
+        }
+
+        async function loadFeed() {
+            document.getElementById("status").innerText = "🔍 Cargando datos...";
+            document.getElementById("status").style.display = "block";
+            document.getElementById("error").innerText = "";
+
+            const atomText = await fetchFeed(initialFeedUrl);
+            if (atomText) {
+                const data = parseAtomFeed(atomText);
+                displayLicitaciones(data);
+            }
+
+            document.getElementById("status").style.display = "none";
+        }
+
+        window.onload = loadFeed;
+    </script>
+</head>
+<body>
+    <h2>Monitor de Licitaciones</h2>
+    <div class="filter-container">
+        <input type="text" id="cpvFilter" placeholder="Código CPV">
+        <input type="text" id="importeFilter" placeholder="Importe mínimo">
+        <input type="text" id="ubicacionFilter" placeholder="Ubicación">
+        <button onclick="loadFeed()">Aplicar Filtros</button>
+    </div>
+    <p id="status" style="display: none;">🔍 Cargando datos...</p>
+    <p id="error" class="error-message"></p>
+    <h3>Licitaciones:</h3>
+    <table border="1" id="licitacionesTable"></table>
+</body>
+</html>
