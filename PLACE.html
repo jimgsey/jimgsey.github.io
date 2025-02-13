@@ -91,25 +91,6 @@
             text-align: center;
         }
     </style>
-</head>
-<body>
-    <h2>Monitor de Licitaciones</h2>
-    <div class="filter-container">
-        <input type="text" id="cpvFilter" placeholder="Código CPV">
-        <input type="text" id="importeFilter" placeholder="Importe mínimo">
-        <input type="text" id="ubicacionFilter" placeholder="Ubicación">
-        <button onclick="checkNewFeed()">Aplicar Filtros</button>
-    </div>
-    <div class="load-more-container">
-        <input type="number" id="maxFeedsInput" placeholder="Número de historial a cargar" min="1" value="1">
-        <button onclick="loadMoreFeeds()">Cargar más historial</button>
-        <div id="progress" class="progress-indicator"></div>
-    </div>
-    <p id="status" style="display: none;">🔍 Cargando datos...</p>
-    <p id="error" class="error-message"></p>
-    <h3>Licitaciones:</h3>
-    <table border="1" id="licitacionesTable"></table>
-
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
 
@@ -117,6 +98,7 @@
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
 
+        // Función para fetch con timeout
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -144,7 +126,7 @@
             try {
                 document.getElementById("status").innerText = "🔍 Cargando datos...";
                 document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
+                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
 
                 await loadFeedsInBatches(1);
 
@@ -164,7 +146,7 @@
             try {
                 document.getElementById("status").innerText = "🔍 Cargando más datos...";
                 document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
+                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
 
                 const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
 
@@ -202,12 +184,12 @@
 
                     if (feedCount % 1 === 0) {
                         fetchAndDisplayLicitaciones(allEntries);
-                        await new Promise(resolve => setTimeout(resolve, 100));
+                        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeña pausa para evitar bloqueos
                     }
                 } catch (error) {
                     console.error(error);
                     document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
-                    throw error;
+                    throw error; // Relanzar el error para que sea capturado por la función superior
                 }
             }
 
@@ -217,7 +199,7 @@
 
         function fetchAndDisplayLicitaciones(entries) {
             try {
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th><th>Documentos</th></tr>";
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Enlace</th><th>Documentos</th></tr>";
 
                 const procedureCodeMapping = {
                     "1": "Abierto",
@@ -257,10 +239,15 @@
                     const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
                     const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
 
+                    // Extraer ContractNotification
+                    const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
+                    const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
+
+                    // Aplicar filtros
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
                         (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
-                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td>${contractNotification}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
                     }
                 });
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
@@ -277,5 +264,23 @@
 
         window.onload = checkNewFeed;
     </script>
+</head>
+<body>
+    <h2>Monitor de Licitaciones</h2>
+    <div class="filter-container">
+        <input type="text" id="cpvFilter" placeholder="Código CPV">
+        <input type="text" id="importeFilter" placeholder="Importe mínimo">
+        <input type="text" id="ubicacionFilter" placeholder="Ubicación">
+        <button onclick="checkNewFeed()">Aplicar Filtros</button>
+    </div>
+    <div class="load-more-container">
+        <input type="number" id="maxFeedsInput" placeholder="Número de historial a cargar" min="1" value="1">
+        <button onclick="loadMoreFeeds()">Cargar más historial</button>
+        <div id="progress" class="progress-indicator"></div>
+    </div>
+    <p id="status" style="display: none;">🔍 Cargando datos...</p>
+    <p id="error" class="error-message"></p> <!-- Mensaje de error -->
+    <h3>Licitaciones:</h3>
+    <table border="1" id="licitacionesTable"></table>
 </body>
 </html>
