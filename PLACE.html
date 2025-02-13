@@ -58,10 +58,13 @@
         th {
             background-color: #007bff;
             color: white;
+            position: sticky;
+            top: 0;
+            z-index: 1;
         }
         @media (max-width: 600px) {
             .filter-container, .load-more-container {
-                flex-direction: column; 
+                flex-direction: column;
                 align-items: stretch;
             }
             .filter-container input, .filter-container select, .filter-container button,
