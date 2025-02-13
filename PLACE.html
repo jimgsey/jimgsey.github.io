@@ -140,6 +140,18 @@
             "ANUL": "Anulada"
         };
 
+        const procedureCodeMapping = {
+            "1": "Abierto",
+            "2": "Restringido",
+            "3": "Negociado con Publicidad",
+            "4": "Negociado sin Publicidad",
+            "5": "Diálogo Competitivo",
+            "6": "Contrato Menor",
+            "7": "Asociación para la Innovación",
+            "8": "Subasta Electrónica",
+            "9": "Concurso de Proyectos"
+        };
+
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
             const date = new Date(dateString);
@@ -245,22 +257,12 @@
                 atomLinkElement.href = nextFeedUrl || initialFeedUrl;
                 atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
                 let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha</th><th>Enlace</th><th>Documentos</th></tr>";
-                const procedureCodeMapping = {
-                    "1": "Abierto",
-                    "2": "Restringido",
-                    "3": "Negociado con Publicidad",
-                    "4": "Negociado sin Publicidad",
-                    "5": "Diálogo Competitivo",
-                    "6": "Contrato Menor",
-                    "7": "Asociación para la Innovación",
-                    "8": "Subasta Electrónica",
-                    "9": "Concurso de Proyectos"
-                };
                 const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
                 const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
                 const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
                 const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
                 const estadoFilter = document.getElementById("estadoFilter").value;
+                const procedimientoFilter = document.getElementById("procedimientoFilter").value;
                 entries.forEach(entry => {
                     const title = entry.querySelector("title")?.textContent || "N/A";
                     const updated = entry.querySelector("updated")?.textContent || "N/A";
@@ -301,7 +303,8 @@
                         (importe >= importeFilter) &&
                         (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
                         (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
-                        (estadoFilter === "" || estado === estadoFilter)) {
+                        (estadoFilter === "" || estado === estadoFilter) &&
+                        (procedimientoFilter === "" || procedureCode === procedimientoFilter)) {
                         tableContent += `<tr>
                             <td>${title}</td>
                             <td>${cpvs.join(", ") || "N/A"}</td>
@@ -341,13 +344,25 @@
         <input type="text" id="clienteFilter" placeholder="Cliente">
         <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
         <select id="estadoFilter">
-            <option value="">Todos los estados</option>
+            <option value="">Estado</option>
             <option value="Anuncio Previo">Anuncio Previo</option>
             <option value="EN PLAZO">EN PLAZO</option>
             <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
             <option value="Adjudicada">Adjudicada</option>
             <option value="Resuelta">Resuelta</option>
             <option value="Anulada">Anulada</option>
+        </select>
+        <select id="procedimientoFilter">
+            <option value="">Tipo de procedimiento</option>
+            <option value="Abierto">Abierto</option>
+            <option value="Restringido">Restringido</option>
+            <option value="Negociado con Publicidad">Negociado con Publicidad</option>
+            <option value="Negociado sin Publicidad">Negociado sin Publicidad</option>
+            <option value="Diálogo Competitivo">Diálogo Competitivo</option>
+            <option value="Contrato Menor">Contrato Menor</option>
+            <option value="Asociación para la Innovación">Asociación para la Innovación</option>
+            <option value="Subasta Electrónica">Subasta Electrónica</option>
+            <option value="Concurso de Proyectos">Concurso de Proyectos</option>
         </select>
         <button onclick="checkNewFeed()">Aplicar Filtros</button>
     </div>
