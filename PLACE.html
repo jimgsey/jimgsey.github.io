@@ -98,6 +98,17 @@
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
 
+        // Función para formatear fechas en formato DD/MM/AAAA
+        function formatDate(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            const date = new Date(dateString);
+            if (isNaN(date)) return "N/A";
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
         // Función para fetch con timeout
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
             const controller = new AbortController();
@@ -199,7 +210,7 @@
 
         function fetchAndDisplayLicitaciones(entries) {
             try {
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Enlace</th><th>Documentos</th></tr>";
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Enlace</th><th>Documentos</th></tr>";
 
                 const procedureCodeMapping = {
                     "1": "Abierto",
@@ -218,9 +229,9 @@
                 const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
 
                 entries.forEach(entry => {
-                    const title = entry.querySelector("title").textContent;
-                    const updated = entry.querySelector("updated").textContent;
-                    const link = entry.querySelector("link").getAttribute("href");
+                    const title = entry.querySelector("title")?.textContent || "N/A";
+                    const updated = entry.querySelector("updated")?.textContent || "N/A";
+                    const link = entry.querySelector("link")?.getAttribute("href") || "#";
                     const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
                     const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
                     let ubicacion = "N/A";
@@ -239,15 +250,27 @@
                     const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
                     const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
 
-                    // Extraer ContractNotification
+                    // Extraer Nº Expediente (ContractNotification)
                     const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
                     const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
+
+                    // Extraer Fecha del Anuncio (IssueDate en AdditionalPublicationDocumentReference)
+                    const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
+                    const fechaAnuncio = additionalPublicationElement 
+                        ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
+                        : "N/A";
+
+                    // Extraer Fecha Final (EndDate en TenderSubmissionDeadlinePeriod)
+                    const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
+                    const fechaFinal = tenderDeadlineElement 
+                        ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
+                        : "N/A";
 
                     // Aplicar filtros
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
                         (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
-                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td>${contractNotification}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td>${contractNotification}</td><td>${fechaAnuncio}</td><td>${fechaFinal}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
                     }
                 });
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
