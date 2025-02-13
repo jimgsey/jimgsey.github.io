@@ -90,6 +90,15 @@
             margin-top: 20px;
             text-align: center;
         }
+        .atom-link {
+            margin-bottom: 20px;
+            font-size: 16px;
+            color: #007bff;
+            text-decoration: none;
+        }
+        .atom-link:hover {
+            text-decoration: underline;
+        }
     </style>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
@@ -98,7 +107,6 @@
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
 
-        // Función para formatear fechas en formato DD/MM/AAAA
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
             const date = new Date(dateString);
@@ -109,11 +117,9 @@
             return `${day}/${month}/${year}`;
         }
 
-        // Función para fetch con timeout
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
-
             try {
                 const response = await fetch(url, {
                     ...options,
@@ -133,14 +139,11 @@
         async function checkNewFeed() {
             if (isProcessing) return;
             isProcessing = true;
-
             try {
                 document.getElementById("status").innerText = "🔍 Cargando datos...";
                 document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
-
+                document.getElementById("error").innerText = "";
                 await loadFeedsInBatches(1);
-
                 document.getElementById("status").style.display = "none";
             } catch (error) {
                 console.error(error);
@@ -153,16 +156,12 @@
         async function loadMoreFeeds() {
             if (isProcessing) return;
             isProcessing = true;
-
             try {
                 document.getElementById("status").innerText = "🔍 Cargando más datos...";
                 document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = ""; // Limpiar mensajes de error anteriores
-
+                document.getElementById("error").innerText = "";
                 const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
-
                 await loadFeedsInBatches(maxFeeds);
-
                 document.getElementById("status").style.display = "none";
             } catch (error) {
                 console.error(error);
@@ -175,43 +174,39 @@
         async function loadFeedsInBatches(maxFeeds) {
             let feedCount = 0;
             let currentFeedUrl = nextFeedUrl;
-
             while (currentFeedUrl && feedCount < maxFeeds) {
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
-
                 try {
                     const response = await fetchWithTimeout(currentFeedUrl);
                     if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
                     const text = await response.text();
                     const parser = new DOMParser();
                     const xmlDoc = parser.parseFromString(text, "text/xml");
-
                     const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
                     allEntries.push(...feedEntries);
-
                     const nextLink = xmlDoc.querySelector('link[rel="next"]');
                     currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                     feedCount++;
-
                     if (feedCount % 1 === 0) {
                         fetchAndDisplayLicitaciones(allEntries);
-                        await new Promise(resolve => setTimeout(resolve, 100)); // Pequeña pausa para evitar bloqueos
+                        await new Promise(resolve => setTimeout(resolve, 100));
                     }
                 } catch (error) {
                     console.error(error);
                     document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
-                    throw error; // Relanzar el error para que sea capturado por la función superior
+                    throw error;
                 }
             }
-
             nextFeedUrl = currentFeedUrl;
             fetchAndDisplayLicitaciones(allEntries);
         }
 
         function fetchAndDisplayLicitaciones(entries) {
             try {
-                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Enlace</th><th>Documentos</th></tr>";
-
+                const atomLinkElement = document.getElementById("atomLink");
+                atomLinkElement.href = nextFeedUrl || initialFeedUrl;
+                atomLinkElement.innerText = `Ver Atom más actual (${nextFeedUrl ? "Cargado" : "Inicial"})`;
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Presentación</th><th>Enlace</th><th>Documentos</th></tr>";
                 const procedureCodeMapping = {
                     "1": "Abierto",
                     "2": "Restringido",
@@ -223,11 +218,9 @@
                     "8": "Subasta Electrónica",
                     "9": "Concurso de Proyectos"
                 };
-
                 const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
                 const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
                 const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
-
                 entries.forEach(entry => {
                     const title = entry.querySelector("title")?.textContent || "N/A";
                     const updated = entry.querySelector("updated")?.textContent || "N/A";
@@ -239,34 +232,24 @@
                     if (ubicacionElement) ubicacion = ubicacionElement.textContent.toLowerCase();
                     const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
                     const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
-
                     const documentElements = entry.getElementsByTagName("cac:ExternalReference");
                     const documentos = Array.from(documentElements).map((doc, index) => {
                         const uriElement = doc.getElementsByTagName("cbc:URI")[0];
                         return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
                     });
                     const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
-
                     const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
                     const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
-
-                    // Extraer Nº Expediente (ContractNotification)
                     const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
                     const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
-
-                    // Extraer Fecha del Anuncio (IssueDate en AdditionalPublicationDocumentReference)
                     const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
                     const fechaAnuncio = additionalPublicationElement 
                         ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
                         : "N/A";
-
-                    // Extraer Fecha Final (EndDate en TenderSubmissionDeadlinePeriod)
                     const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
                     const fechaFinal = tenderDeadlineElement 
                         ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
                         : "N/A";
-
-                    // Aplicar filtros
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
                         (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
@@ -302,7 +285,8 @@
         <div id="progress" class="progress-indicator"></div>
     </div>
     <p id="status" style="display: none;">🔍 Cargando datos...</p>
-    <p id="error" class="error-message"></p> <!-- Mensaje de error -->
+    <p id="error" class="error-message"></p>
+    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver historial Atom más actual</a>
     <h3>Licitaciones:</h3>
     <table border="1" id="licitacionesTable"></table>
 </body>
