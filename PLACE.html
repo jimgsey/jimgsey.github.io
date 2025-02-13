@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
-  <style>
+    <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -160,7 +160,7 @@
             }
         }
 
-        async function checkNewFeed() {
+        const checkNewFeed = async () => {
             if (isProcessing) return;
             isProcessing = true;
             try {
@@ -175,7 +175,7 @@
             } finally {
                 isProcessing = false;
             }
-        }
+        };
 
         async function loadMoreFeeds() {
             if (isProcessing) return;
@@ -248,6 +248,7 @@
                 const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
                 const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
                 const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
+                const estadoFilter = document.getElementById("estadoFilter").value;
                 entries.forEach(entry => {
                     const title = entry.querySelector("title")?.textContent || "N/A";
                     const updated = entry.querySelector("updated")?.textContent || "N/A";
@@ -287,7 +288,8 @@
                     if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
                         (importe >= importeFilter) &&
                         (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
-                        (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter))) {
+                        (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
+                        (estadoFilter === "" || estado === estadoFilter)) {
                         tableContent += `<tr>
                             <td>${title}</td>
                             <td>${cpvs.join(", ") || "N/A"}</td>
@@ -298,7 +300,7 @@
                             <td>${fechaAnuncio}</td>
                             <td>${fechaFinal}</td>
                             <td>${estado}</td>
-							<td>${updated}</td>
+                            <td>${updated}</td>
                             <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
                             <td>${documentosHTML}</td>
                         </tr>`;
@@ -316,11 +318,6 @@
             content.style.display = content.style.display === "block" ? "none" : "block";
         }
 
-        function toggleMobileDetails(row) {
-            const details = row.querySelector('.mobile-details');
-            details.classList.toggle('show');
-        }
-
         window.onload = checkNewFeed;
     </script>
 </head>
@@ -331,6 +328,15 @@
         <input type="text" id="importeFilter" placeholder="Importe mínimo">
         <input type="text" id="clienteFilter" placeholder="Cliente">
         <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
+        <select id="estadoFilter">
+            <option value="">Todos los estados</option>
+            <option value="Anuncio Previo">Anuncio Previo</option>
+            <option value="EN PLAZO">EN PLAZO</option>
+            <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
+            <option value="Adjudicada">Adjudicada</option>
+            <option value="Resuelta">Resuelta</option>
+            <option value="Anulada">Anulada</option>
+        </select>
         <button onclick="checkNewFeed()">Aplicar Filtros</button>
     </div>
     <div class="load-more-container">
