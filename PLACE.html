@@ -3,76 +3,279 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feed de Licitaciones</title>
+    <title>Monitor de Licitaciones</title>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        h1 { font-size: 20px; }
-        .entry { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
-        .entry a { text-decoration: none; color: #007bff; }
-        #loadMore { margin-top: 10px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h2 {
+            text-align: center;
+        }
+        .filter-container, .load-more-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+        .filter-container input, .filter-container select, .filter-container button,
+        .load-more-container input, .load-more-container button {
+            padding: 8px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            overflow-x: auto;
+            display: block;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #007bff;
+            color: white;
+        }
+        @media (max-width: 600px) {
+            table, th, td {
+                font-size: 12px;
+            }
+            .filter-container, .load-more-container {
+                flex-direction: column;
+                align-items: center;
+            }
+            .filter-container input, .filter-container select, .filter-container button,
+            .load-more-container input, .load-more-container button {
+                width: 100%;
+            }
+        }
+        .document-list {
+            display: none;
+        }
+        .toggle-button {
+            cursor: pointer;
+            background-color: #28a745;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .progress-indicator {
+            margin-top: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .error-message {
+            color: red;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h1>Últimas Licitaciones</h1>
-    <div id="feed"></div>
-    <button id="loadMore">Cargar más</button>
+    <h2>Monitor de Licitaciones</h2>
+    <div class="filter-container">
+        <input type="text" id="cpvFilter" placeholder="Código CPV">
+        <input type="text" id="importeFilter" placeholder="Importe mínimo">
+        <input type="text" id="ubicacionFilter" placeholder="Ubicación">
+        <button onclick="checkNewFeed()">Aplicar Filtros</button>
+    </div>
+    <div class="load-more-container">
+        <input type="number" id="maxFeedsInput" placeholder="Número de historial a cargar" min="1" value="1">
+        <button onclick="loadMoreFeeds()">Cargar más historial</button>
+        <div id="progress" class="progress-indicator"></div>
+    </div>
+    <p id="status" style="display: none;">🔍 Cargando datos...</p>
+    <p id="error" class="error-message"></p>
+    <h3>Licitaciones:</h3>
+    <table border="1" id="licitacionesTable"></table>
 
     <script>
-        const feedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+        const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+
         let allEntries = [];
-        let displayedCount = 0;
-        const batchSize = 10; // Número de licitaciones a cargar por lote
+        let nextFeedUrl = initialFeedUrl;
+        let isProcessing = false;
 
-        async function fetchFeed() {
+        async function fetchWithTimeout(url, options = {}, timeout = 15000) {
+            const controller = new AbortController();
+            const id = setTimeout(() => controller.abort(), timeout);
+
             try {
-                const response = await fetch(feedUrl);
-                const text = await response.text();
-                const xml = new window.DOMParser().parseFromString(text, "text/xml");
-                allEntries = Array.from(xml.querySelectorAll("entry"));
-                displayedCount = 0;
-                displayNextBatch();
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                    }
+                });
+                clearTimeout(id);
+                return response;
             } catch (error) {
-                console.error("Error cargando el feed:", error);
+                clearTimeout(id);
+                throw error;
             }
         }
 
-        function displayNextBatch() {
-            const feedContainer = document.getElementById("feed");
-            const nextEntries = allEntries.slice(displayedCount, displayedCount + batchSize);
+        async function checkNewFeed() {
+            if (isProcessing) return;
+            isProcessing = true;
 
-            const procedureCodeMapping = {
-                "1": "Abierto", "2": "Restringido", "3": "Negociado con Publicidad",
-                "4": "Negociado sin Publicidad", "5": "Diálogo Competitivo", "6": "Contrato Menor",
-                "7": "Asociación para la Innovación", "8": "Subasta Electrónica", "9": "Concurso de Proyectos"
-            };
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
 
-            nextEntries.forEach(entry => {
-                let title = entry.querySelector("title").textContent;
-                let link = entry.querySelector("link").getAttribute("href");
-                
-                let cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
-                let cpvs = Array.from(cpvElements).map(el => el.textContent).join(", ") || "No disponible";
-                
-                let procedureCodeElement = entry.querySelector("cbc\\:ProcedureCode");
-                let procedure = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "No disponible" : "No disponible";
-                
-                let div = document.createElement("div");
-                div.classList.add("entry");
-                div.innerHTML = `<strong>${title}</strong><br>
-                                 <em>CPV: ${cpvs}</em><br>
-                                 <em>Procedimiento: ${procedure}</em><br>
-                                 <a href="${link}" target="_blank">Ver más</a>`;
-                feedContainer.appendChild(div);
-            });
+                await loadFeedsInBatches(1);
 
-            displayedCount += batchSize;
-            if (displayedCount >= allEntries.length) {
-                document.getElementById("loadMore").style.display = "none";
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
+            } finally {
+                isProcessing = false;
             }
         }
 
-        document.getElementById("loadMore").addEventListener("click", displayNextBatch);
-        window.onload = fetchFeed;
+        async function loadMoreFeeds() {
+            if (isProcessing) return;
+            isProcessing = true;
+
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando más datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+
+                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
+
+                await loadFeedsInBatches(maxFeeds);
+
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function loadFeedsInBatches(maxFeeds) {
+            let feedCount = 0;
+            let currentFeedUrl = nextFeedUrl;
+
+            while (currentFeedUrl && feedCount < maxFeeds) {
+                document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
+
+                try {
+                    const response = await fetchWithTimeout(currentFeedUrl);
+                    if (!response.ok) throw new Error(`No se pudo obtener el historial: ${currentFeedUrl}`);
+                    const text = await response.text();
+                    const parser = new DOMParser();
+                    const xmlDoc = parser.parseFromString(text, "text/xml");
+
+                    const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
+                    allEntries.push(...feedEntries);
+
+                    const nextLink = xmlDoc.querySelector('link[rel="next"]');
+                    currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
+                    feedCount++;
+
+                    if (feedCount % 1 === 0) {
+                        fetchAndDisplayLicitaciones(allEntries);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
+                } catch (error) {
+                    console.error(error);
+                    document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
+                    throw error;
+                }
+            }
+
+            nextFeedUrl = currentFeedUrl;
+            fetchAndDisplayLicitaciones(allEntries);
+        }
+
+        function fetchAndDisplayLicitaciones(entries) {
+            try {
+                let tableContent = "<tr><th>Título</th><th>Fecha</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Ubicación</th><th>Enlace</th><th>Documentos</th></tr>";
+
+                const procedureCodeMapping = {
+                    "1": "Abierto",
+                    "2": "Restringido",
+                    "3": "Negociado con Publicidad",
+                    "4": "Negociado sin Publicidad",
+                    "5": "Diálogo Competitivo",
+                    "6": "Contrato Menor",
+                    "7": "Asociación para la Innovación",
+                    "8": "Subasta Electrónica",
+                    "9": "Concurso de Proyectos"
+                };
+
+                const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
+                const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
+                const ubicacionFilter = document.getElementById("ubicacionFilter").value.toLowerCase();
+
+                entries.forEach(entry => {
+                    const title = entry.querySelector("title").textContent;
+                    const updated = entry.querySelector("updated").textContent;
+                    const link = entry.querySelector("link").getAttribute("href");
+                    const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
+                    const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+                    let ubicacion = "N/A";
+                    const ubicacionElement = entry.getElementsByTagName("cbc:CityName")[0];
+                    if (ubicacionElement) ubicacion = ubicacionElement.textContent.toLowerCase();
+                    const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
+                    const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
+
+                    const documentElements = entry.getElementsByTagName("cac:ExternalReference");
+                    const documentos = Array.from(documentElements).map((doc, index) => {
+                        const uriElement = doc.getElementsByTagName("cbc:URI")[0];
+                        return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
+                    });
+                    const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
+
+                    const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
+                    const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
+
+                    if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
+                        (importe >= importeFilter) &&
+                        (ubicacionFilter === "" || ubicacion.includes(ubicacionFilter))) {
+                        tableContent += `<tr><td>${title}</td><td>${updated}</td><td>${cpvs.join(", ") || "N/A"}</td><td>${importe}</td><td>${procedureCode}</td><td>${ubicacion}</td><td><a href='${link}' target='_blank'>Ver Licitación</a></td><td>${documentosHTML}</td></tr>`;
+                    }
+                });
+                document.getElementById("licitacionesTable").innerHTML = tableContent;
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
+            }
+        }
+
+        function toggleVisibility(button) {
+            const content = button.nextElementSibling;
+            content.style.display = content.style.display === "block" ? "none" : "block";
+        }
+
+        window.onload = checkNewFeed;
     </script>
 </body>
 </html>
