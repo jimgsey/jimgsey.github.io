@@ -9,52 +9,70 @@
         h1 { font-size: 20px; }
         .entry { margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
         .entry a { text-decoration: none; color: #007bff; }
+        #loadMore { margin-top: 10px; padding: 10px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
     <h1>Últimas Licitaciones</h1>
     <div id="feed"></div>
+    <button id="loadMore">Cargar más</button>
 
     <script>
-        fetch("https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom")
-            .then(response => response.text())
-            .then(str => (new window.DOMParser()).parseFromString(str, "text/xml"))
-            .then(data => {
-                let entries = data.querySelectorAll("entry");
-                let feedContainer = document.getElementById("feed");
+        const feedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
+        let allEntries = [];
+        let displayedCount = 0;
+        const batchSize = 10; // Número de licitaciones a cargar por lote
+
+        async function fetchFeed() {
+            try {
+                const response = await fetch(feedUrl);
+                const text = await response.text();
+                const xml = new window.DOMParser().parseFromString(text, "text/xml");
+                allEntries = Array.from(xml.querySelectorAll("entry"));
+                displayedCount = 0;
+                displayNextBatch();
+            } catch (error) {
+                console.error("Error cargando el feed:", error);
+            }
+        }
+
+        function displayNextBatch() {
+            const feedContainer = document.getElementById("feed");
+            const nextEntries = allEntries.slice(displayedCount, displayedCount + batchSize);
+
+            const procedureCodeMapping = {
+                "1": "Abierto", "2": "Restringido", "3": "Negociado con Publicidad",
+                "4": "Negociado sin Publicidad", "5": "Diálogo Competitivo", "6": "Contrato Menor",
+                "7": "Asociación para la Innovación", "8": "Subasta Electrónica", "9": "Concurso de Proyectos"
+            };
+
+            nextEntries.forEach(entry => {
+                let title = entry.querySelector("title").textContent;
+                let link = entry.querySelector("link").getAttribute("href");
                 
-                const procedureCodeMapping = {
-                    "1": "Abierto",
-                    "2": "Restringido",
-                    "3": "Negociado con Publicidad",
-                    "4": "Negociado sin Publicidad",
-                    "5": "Diálogo Competitivo",
-                    "6": "Contrato Menor",
-                    "7": "Asociación para la Innovación",
-                    "8": "Subasta Electrónica",
-                    "9": "Concurso de Proyectos"
-                };
+                let cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
+                let cpvs = Array.from(cpvElements).map(el => el.textContent).join(", ") || "No disponible";
                 
-                entries.forEach(entry => {
-                    let title = entry.querySelector("title").textContent;
-                    let link = entry.querySelector("link").getAttribute("href");
-                    
-                    let cpvElement = entry.querySelector("cpv, cbc\\:ItemClassificationCode");
-                    let cpv = cpvElement ? cpvElement.textContent : "No disponible";
-                    
-                    let procedureCodeElement = entry.querySelector("procedureType, cbc\\:ProcedureCode");
-                    let procedure = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || procedureCodeElement.textContent : "No disponible";
-                    
-                    let div = document.createElement("div");
-                    div.classList.add("entry");
-                    div.innerHTML = `<strong>${title}</strong><br>
-                                     <em>CPV: ${cpv}</em><br>
-                                     <em>Procedimiento: ${procedure}</em><br>
-                                     <a href="${link}" target="_blank">Ver más</a>`;
-                    feedContainer.appendChild(div);
-                });
-            })
-            .catch(error => console.error("Error cargando el feed:", error));
+                let procedureCodeElement = entry.querySelector("cbc\\:ProcedureCode");
+                let procedure = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "No disponible" : "No disponible";
+                
+                let div = document.createElement("div");
+                div.classList.add("entry");
+                div.innerHTML = `<strong>${title}</strong><br>
+                                 <em>CPV: ${cpvs}</em><br>
+                                 <em>Procedimiento: ${procedure}</em><br>
+                                 <a href="${link}" target="_blank">Ver más</a>`;
+                feedContainer.appendChild(div);
+            });
+
+            displayedCount += batchSize;
+            if (displayedCount >= allEntries.length) {
+                document.getElementById("loadMore").style.display = "none";
+            }
+        }
+
+        document.getElementById("loadMore").addEventListener("click", displayNextBatch);
+        window.onload = fetchFeed;
     </script>
 </body>
 </html>
