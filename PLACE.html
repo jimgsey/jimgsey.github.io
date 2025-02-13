@@ -59,22 +59,14 @@
             background-color: #007bff;
             color: white;
         }
-        @media (max-width: 100px) {
-            table, th, td {
-                font-size: 10px;
-            }
+        @media (max-width: 600px) {
             .filter-container, .load-more-container {
-                flex-direction: column;
-                align-items: center;
+                flex-direction: column; 
+                align-items: stretch;
             }
             .filter-container input, .filter-container select, .filter-container button,
             .load-more-container input, .load-more-container button {
                 width: 100%;
-            }
-            table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
             }
         }
         .document-list {
