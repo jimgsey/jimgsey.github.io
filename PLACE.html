@@ -160,6 +160,16 @@
             return `${day}/${month}/${year} // ${hours}:${minutes}:${seconds}`;
         }
 
+        function formatPrice(amount) {
+            if (isNaN(amount)) return "N/A";
+            return new Intl.NumberFormat('es-ES', {
+                style: 'currency',
+                currency: 'EUR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
             const controller = new AbortController();
             const id = setTimeout(() => controller.abort(), timeout);
@@ -264,6 +274,7 @@
                     const link = entry.querySelector("link")?.getAttribute("href") || "#";
                     const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
                     const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+                    const formattedImporte = formatPrice(importe);
                     const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
                     const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
                     const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
@@ -303,7 +314,7 @@
                         tableContent += `<tr>
                             <td>${title}</td>
                             <td>${cpvs.join(", ") || "N/A"}</td>
-                            <td>${importe}</td>
+                            <td>${formattedImporte}</td>
                             <td>${procedureCode}</td>
                             <td>${cliente}</td>
                             <td>${contractNotification}</td>
