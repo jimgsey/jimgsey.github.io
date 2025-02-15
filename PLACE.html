@@ -189,42 +189,7 @@
             }
         }
 
-        const checkNewFeed = async () => {
-            if (isProcessing) return;
-            isProcessing = true;
-            try {
-                document.getElementById("status").innerText = "🔍 Cargando datos...";
-                document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
-                await loadFeedsInBatches(1);
-                document.getElementById("status").style.display = "none";
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
-            } finally {
-                isProcessing = false;
-            }
-        };
-
-        async function loadMoreFeeds() {
-            if (isProcessing) return;
-            isProcessing = true;
-            try {
-                document.getElementById("status").innerText = "🔍 Cargando más datos...";
-                document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
-                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
-                await loadFeedsInBatches(maxFeeds);
-                document.getElementById("status").style.display = "none";
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
-            } finally {
-                isProcessing = false;
-            }
-        }
-
-        async function loadFeedsInBatches(maxFeeds) {
+        async function loadFeeds(maxFeeds) {
             let feedCount = 0;
             let currentFeedUrl = nextFeedUrl;
             while (currentFeedUrl && feedCount < maxFeeds) {
@@ -242,13 +207,9 @@
                     const nextLink = xmlDoc.querySelector('link[rel="next"]');
                     currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                     feedCount++;
-                    if (feedCount % 1 === 0) {
-                        fetchAndDisplayLicitaciones(allEntries);
-                        await new Promise(resolve => setTimeout(resolve, 100));
-                    }
                 } catch (error) {
                     console.error(error);
-                    document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
+                    document.getElementById("error").innerText = `❌ Error al cargar feeds: ${error.message}`;
                     throw error;
                 }
             }
@@ -278,8 +239,8 @@
                     const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
                     const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
                     const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
-                    const buyerProfile = buyerProfileElement 
-                        ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>` 
+                    const buyerProfile = buyerProfileElement
+                        ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>`
                         : "N/A";
                     const cliente = `${clienteName}<br>${buyerProfile}`;
                     const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
@@ -295,11 +256,11 @@
                     const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
                     const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
                     const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
-                    const fechaAnuncio = additionalPublicationElement 
+                    const fechaAnuncio = additionalPublicationElement
                         ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
                         : "N/A";
                     const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
-                    const fechaFinal = tenderDeadlineElement 
+                    const fechaFinal = tenderDeadlineElement
                         ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
                         : "N/A";
                     const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
@@ -330,13 +291,48 @@
                 document.getElementById("licitacionesTable").innerHTML = tableContent;
             } catch (error) {
                 console.error(error);
-                document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
+                document.getElementById("error").innerText = `❌ Error al mostrar licitaciones: ${error.message}`;
             }
         }
 
         function toggleVisibility(button) {
             const content = button.nextElementSibling;
             content.style.display = content.style.display === "block" ? "none" : "block";
+        }
+
+        async function checkNewFeed() {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+                await loadFeeds(1);
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function loadMoreFeeds() {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando más datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
+                await loadFeeds(maxFeeds);
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
+            } finally {
+                isProcessing = false;
+            }
         }
 
         window.onload = checkNewFeed;
