@@ -5,6 +5,67 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Columna de Filtros -->
+        <div class="filters">
+            <h2>Filtros</h2>
+            <input type="text" id="cpvFilter" placeholder="Código CPV">
+            <input type="text" id="importeFilter" placeholder="Importe mínimo">
+            <input type="text" id="clienteFilter" placeholder="Cliente">
+            <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
+            <select id="estadoFilter">
+                <option value="">Estado</option>
+                <option value="Anuncio Previo">Anuncio Previo</option>
+                <option value="EN PLAZO">EN PLAZO</option>
+                <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
+                <option value="Adjudicada">Adjudicada</option>
+                <option value="Resuelta">Resuelta</option>
+                <option value="Anulada">Anulada</option>
+            </select>
+            <select id="procedimientoFilter">
+                <option value="">Tipo de procedimiento</option>
+                <option value="Abierto">Abierto</option>
+                <option value="Restringido">Restringido</option>
+                <option value="Negociado con Publicidad">Negociado con Publicidad</option>
+                <option value="Negociado sin Publicidad">Negociado sin Publicidad</option>
+                <option value="Diálogo Competitivo">Diálogo Competitivo</option>
+                <option value="Contrato Menor">Contrato Menor</option>
+                <option value="Asociación para la Innovación">Asociación para la Innovación</option>
+                <option value="Subasta Electrónica">Subasta Electrónica</option>
+                <option value="Concurso de Proyectos">Concurso de Proyectos</option>
+            </select>
+            <button onclick="checkNewFeed()">Aplicar Filtros</button>
+            <div class="load-more-container">
+                <input type="number" id="maxFeedsInput" placeholder="Número de historial a cargar" min="1" value="1">
+                <button onclick="loadMoreFeeds()">Cargar más historial</button>
+                <div id="progress" class="progress-indicator"></div>
+            </div>
+
+            <!-- Cuadro para "Ver el último Atom" -->
+            <div class="atom-box">
+                <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
+            </div>
+
+            <!-- Descripción bajo los filtros -->
+            <div class="description">
+                Para ampliar la base de datos es necesario que cargues más Atom.
+            </div>
+        </div>
+
+        <!-- Columna de Tarjetas -->
+        <div class="cards">
+            <h3>Anuncios Licitaciones</h3>
+            <div class="info-box">
+                Creado para revisar los anuncios que cada día se publican en la base de datos.
+            </div>
+            <p id="status" style="display: none;">🔍 Cargando datos...</p>
+            <p id="error" class="error-message"></p>
+            <div id="licitacionesContainer"></div>
+        </div>
+    </div>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
         const proxyUrl = "https://corsmirror.com/v1?url=";
@@ -143,137 +204,126 @@
             fetchAndDisplayLicitaciones(allEntries);
         }
 
- function convertToNumber(value) {
-    // Elimina los puntos que separan los miles y reemplaza la coma decimal por un punto
-    return parseFloat(value.replace(/\./g, '').replace(',', '.'));
-}
-
-function fetchAndDisplayLicitaciones(entries) {
-    try {
-        const atomLinkElement = document.getElementById("atomLink");
-        atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-        atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
-        let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha Actualización</th><th>Enlace</th><th>Documentos</th></tr>";
-        const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
-        const importeFilterValue = document.getElementById("importeFilter").value;
-        const importeFilter = importeFilterValue ? convertToNumber(importeFilterValue) : 0; // Convertir el valor del filtro
-        const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
-        const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
-        const estadoFilter = document.getElementById("estadoFilter").value;
-        const procedimientoFilter = document.getElementById("procedimientoFilter").value;
-        entries.forEach(entry => {
-            const title = entry.querySelector("title")?.textContent || "N/A";
-            const updated = entry.querySelector("updated")?.textContent || "N/A";
-            const link = entry.querySelector("link")?.getAttribute("href") || "#";
-            const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
-            const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
-            const formattedImporte = formatPrice(importe);
-            const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
-            const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
-            const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
-            const buyerProfile = buyerProfileElement 
-                ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>` 
-                : "N/A";
-            const cliente = `${clienteName}<br>${buyerProfile}`;
-            const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
-            const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
-            const documentElements = entry.getElementsByTagName("cac:ExternalReference");
-            const documentos = Array.from(documentElements).map((doc, index) => {
-                const uriElement = doc.getElementsByTagName("cbc:URI")[0];
-                return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
-            });
-            const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
-            const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
-            const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
-            const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
-            const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
-            const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
-            const fechaAnuncio = additionalPublicationElement 
-                ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
-                : "N/A";
-            const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
-            const fechaFinal = tenderDeadlineElement 
-                ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
-                : "N/A";
-            const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
-            const estadoCode = estadoElement ? estadoElement.textContent : "N/A";
-            const estado = estadoMapping[estadoCode] || "N/A";
-            if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
-                (importe >= importeFilter) && // Comparar con el valor convertido
-                (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
-                (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
-                (estadoFilter === "" || estado === estadoFilter) &&
-                (procedimientoFilter === "" || procedureCode === procedimientoFilter)) {
-                tableContent += `<tr>
-                    <td>${title}</td>
-                    <td>${cpvs.join(", ") || "N/A"}</td>
-                    <td>${formattedImporte}</td>
-                    <td>${procedureCode}</td>
-                    <td>${cliente}</td>
-                    <td>${contractNotification}</td>
-                    <td>${fechaAnuncio}</td>
-                    <td>${fechaFinal}</td>
-                    <td>${estado}</td>
-                    <td>${formatDate(updated)}</td>
-                    <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
-                    <td>${documentosHTML}</td>
-                </tr>`;
-            }
-        });
-        document.getElementById("licitacionesTable").innerHTML = tableContent;
-    } catch (error) {
-        console.error(error);
-        document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
-    }
-}
-
         function toggleVisibility(button) {
             const content = button.nextElementSibling;
             content.style.display = content.style.display === "block" ? "none" : "block";
+            button.textContent = content.style.display === "block" ? "Ocultar Documentos" : "Documentos";
+        }
+
+        function toggleCPVVisibility(button) {
+            const content = button.nextElementSibling;
+            content.style.display = content.style.display === "block" ? "none" : "block";
+            button.innerHTML = content.style.display === "block" ? `<i class="fas fa-minus"></i>` : `<i class="fas fa-plus"></i>`;
+        }
+
+        function formatShortDate(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            const date = new Date(dateString);
+            if (isNaN(date)) return "N/A";
+            const day = String(date.getDate()).padStart(2, '0');
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const year = date.getFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+        function formatTime(dateString) {
+            if (!dateString || dateString === "N/A") return "N/A";
+            const date = new Date(dateString);
+            if (isNaN(date)) return "N/A";
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function fetchAndDisplayLicitaciones(entries) {
+            try {
+                const atomLinkElement = document.getElementById("atomLink");
+                atomLinkElement.href = nextFeedUrl || initialFeedUrl;
+                atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
+                let cardsContent = "";
+                const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
+                const importeFilterValue = document.getElementById("importeFilter").value;
+                const importeFilter = importeFilterValue ? convertToNumber(importeFilterValue) : 0;
+                const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
+                const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
+                const estadoFilter = document.getElementById("estadoFilter").value;
+                const procedimientoFilter = document.getElementById("procedimientoFilter").value;
+                entries.forEach(entry => {
+                    const title = entry.querySelector("title")?.textContent || "N/A";
+                    const updated = entry.querySelector("updated")?.textContent || "N/A";
+                    const link = entry.querySelector("link")?.getAttribute("href") || "#";
+                    const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
+                    const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+                    const formattedImporte = formatPrice(importe);
+                    const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
+                    const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
+                    const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
+                    const buyerProfile = buyerProfileElement 
+                        ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='ver-perfil'><i class="fas fa-external-link-alt"></i> Ver Perfil</a>` 
+                        : "N/A";
+                    const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
+                    const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
+                    const documentElements = entry.getElementsByTagNameNS("*", "Attachment");
+                    const documentos = Array.from(documentElements).map((doc, index) => {
+                        const docIdElement = doc.parentElement.getElementsByTagNameNS("*", "ID")[0];
+                        const docName = docIdElement ? docIdElement.textContent : `Documento ${index + 1}`;
+                        const uriElement = doc.getElementsByTagNameNS("*", "URI")[0];
+                        return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>${docName}</a>` : "";
+                    });
+                    const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'><i class="fas fa-file"></i> Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
+                    const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
+                    const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
+                    const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
+                    const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
+                    const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
+                    const fechaAnuncio = additionalPublicationElement 
+                        ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
+                        : "N/A";
+                    const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
+                    const fechaFinal = tenderDeadlineElement 
+                        ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
+                        : "N/A";
+                    const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
+                    const estadoCode = estadoElement ? estadoElement.textContent : "N/A";
+                    const estado = estadoMapping[estadoCode] || "N/A";
+                    if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
+                        (importe >= importeFilter) &&
+                        (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
+                        (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
+                        (estadoFilter === "" || estado === estadoFilter) &&
+                        (procedimientoFilter === "" || procedureCode === procedimientoFilter)) {
+                        const cpvsToShow = cpvs.slice(0, 3);
+                        const cpvsHidden = cpvs.slice(3);
+                        const cpvsHTML = cpvsToShow.join(", ");
+                        const cpvsHiddenHTML = cpvsHidden.length > 0 ? `<button class='toggle-cpv' onclick='toggleCPVVisibility(this)'><i class="fas fa-plus"></i></button><div class='cpv-list-hidden'>${cpvsHidden.join(", ")}</div>` : "";
+                        cardsContent += `<div class="card">
+                            <div class="card-header">
+                                <div class="expediente"><strong>Nº Exp: ${contractNotification}</strong></div>
+                                <span class="actualizado">Actualizado: ${formatShortDate(updated)}</span>
+                            </div>
+                            <p class="objeto">${title}</p>
+                            <p class="cpv">CPV: ${cpvsHTML} ${cpvsHiddenHTML}</p>
+                            <p class="cliente"><i class="fas fa-building"></i> ${clienteName} <span class="ver-perfil">${buyerProfile}</span></p>
+                            <hr class="divider">
+                            <div class="card-details">
+                                <p><i class="fas fa-box"></i> ${procedureCode}</p>
+                                <p><i class="fas fa-info-circle"></i> ${estado}</p>
+                                <p><i class="fas fa-credit-card"></i> ${formattedImporte}</p>
+                                <p><i class="fas fa-calendar-alt"></i> ${formatShortDate(fechaFinal)} <i class="fas fa-clock" style="color: #777;"></i> ${formatTime(fechaFinal)}</p>
+                            </div>
+                            <a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a>
+                            ${documentosHTML}
+                        </div>`;
+                    }
+                });
+                document.getElementById("licitacionesContainer").innerHTML = cardsContent;
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
+            }
         }
 
         window.onload = checkNewFeed;
     </script>
-</head>
-<body>
-    <h2>Licitaciones PLACE</h2>
-    <div class="filter-container">
-        <input type="text" id="cpvFilter" placeholder="Código CPV">
-        <input type="text" id="importeFilter" placeholder="Importe mínimo">
-        <input type="text" id="clienteFilter" placeholder="Cliente">
-        <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
-        <select id="estadoFilter">
-            <option value="">Estado</option>
-            <option value="Anuncio Previo">Anuncio Previo</option>
-            <option value="EN PLAZO">EN PLAZO</option>
-            <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
-            <option value="Adjudicada">Adjudicada</option>
-            <option value="Resuelta">Resuelta</option>
-            <option value="Anulada">Anulada</option>
-        </select>
-        <select id="procedimientoFilter">
-            <option value="">Tipo de procedimiento</option>
-            <option value="Abierto">Abierto</option>
-            <option value="Restringido">Restringido</option>
-            <option value="Negociado con Publicidad">Negociado con Publicidad</option>
-            <option value="Negociado sin Publicidad">Negociado sin Publicidad</option>
-            <option value="Diálogo Competitivo">Diálogo Competitivo</option>
-            <option value="Contrato Menor">Contrato Menor</option>
-            <option value="Asociación para la Innovación">Asociación para la Innovación</option>
-            <option value="Subasta Electrónica">Subasta Electrónica</option>
-            <option value="Concurso de Proyectos">Concurso de Proyectos</option>
-        </select>
-        <button onclick="checkNewFeed()">Aplicar Filtros</button>
-    </div>
-    <div class="load-more-container">
-        <input type="number" id="maxFeedsInput" placeholder="Número de historial a cargar" min="1" value="1">
-        <button onclick="loadMoreFeeds()">Cargar más historial</button>
-        <div id="progress" class="progress-indicator"></div>
-    </div>
-    <p id="status" style="display: none;">🔍 Cargando datos...</p>
-    <p id="error" class="error-message"></p>
-    <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
-    <h3>Licitaciones:</h3>
-    <table border="1" id="licitacionesTable"></table>
 </body>
 </html>
