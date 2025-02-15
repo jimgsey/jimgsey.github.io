@@ -4,120 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-size: 14px;
-        }
-        h2 {
-            text-align: center;
-            font-size: 18px;
-        }
-        .filter-container, .load-more-container {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 20px;
-            width: 100%;
-            max-width: 800px;
-        }
-        .filter-container input, .filter-container select, .filter-container button,
-        .load-more-container input, .load-more-container button {
-            padding: 8px;
-            border-radius: 5px;
-            border: 1px solid #ccc;
-            font-size: 12px;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            border: none;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 12px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            overflow-x: auto;
-            display: block;
-            font-size: 12px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
-        }
-        th {
-            background-color: #007bff;
-            color: white;
-            position: sticky;
-            top: 0;
-            z-index: 1;
-        }
-        @media (max-width: 600px) {
-            .filter-container, .load-more-container {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .filter-container input, .filter-container select, .filter-container button,
-            .load-more-container input, .load-more-container button {
-                width: 100%;
-            }
-        }
-        .document-list {
-            display: none;
-        }
-        .toggle-button {
-            cursor: pointer;
-            background-color: #28a745;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 12px;
-        }
-        .progress-indicator {
-            margin-top: 10px;
-            font-weight: bold;
-            text-align: center;
-            font-size: 12px;
-        }
-        .error-message {
-            color: red;
-            font-weight: bold;
-            margin-top: 20px;
-            text-align: center;
-            font-size: 12px;
-        }
-        .atom-link {
-            margin-bottom: 20px;
-            font-size: 14px;
-            color: #007bff;
-            text-decoration: none;
-        }
-        .atom-link:hover {
-            text-decoration: underline;
-        }
-        .ver-licitacion-button {
-            background-color: #007bff;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            text-decoration: none;
-            display: inline-block;
-            cursor: pointer;
-            font-size: 12px;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css">
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
         const proxyUrl = "https://corsmirror.com/v1?url=";
@@ -189,7 +76,42 @@
             }
         }
 
-        async function loadFeeds(maxFeeds) {
+        const checkNewFeed = async () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+                await loadFeedsInBatches(1);
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
+            } finally {
+                isProcessing = false;
+            }
+        };
+
+        async function loadMoreFeeds() {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando más datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
+                await loadFeedsInBatches(maxFeeds);
+                document.getElementById("status").style.display = "none";
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
+            } finally {
+                isProcessing = false;
+            }
+        }
+
+        async function loadFeedsInBatches(maxFeeds) {
             let feedCount = 0;
             let currentFeedUrl = nextFeedUrl;
             while (currentFeedUrl && feedCount < maxFeeds) {
@@ -207,9 +129,13 @@
                     const nextLink = xmlDoc.querySelector('link[rel="next"]');
                     currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                     feedCount++;
+                    if (feedCount % 1 === 0) {
+                        fetchAndDisplayLicitaciones(allEntries);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                    }
                 } catch (error) {
                     console.error(error);
-                    document.getElementById("error").innerText = `❌ Error al cargar feeds: ${error.message}`;
+                    document.getElementById("error").innerText = `❌ Error en loadFeedsInBatches: ${error.message}`;
                     throw error;
                 }
             }
@@ -217,122 +143,93 @@
             fetchAndDisplayLicitaciones(allEntries);
         }
 
-        function fetchAndDisplayLicitaciones(entries) {
-            try {
-                const atomLinkElement = document.getElementById("atomLink");
-                atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-                atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
-                let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha Actualización</th><th>Enlace</th><th>Documentos</th></tr>";
-                const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
-                const importeFilter = parseFloat(document.getElementById("importeFilter").value) || 0;
-                const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
-                const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
-                const estadoFilter = document.getElementById("estadoFilter").value;
-                const procedimientoFilter = document.getElementById("procedimientoFilter").value;
-                entries.forEach(entry => {
-                    const title = entry.querySelector("title")?.textContent || "N/A";
-                    const updated = entry.querySelector("updated")?.textContent || "N/A";
-                    const link = entry.querySelector("link")?.getAttribute("href") || "#";
-                    const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
-                    const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
-                    const formattedImporte = formatPrice(importe);
-                    const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
-                    const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
-                    const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
-                    const buyerProfile = buyerProfileElement
-                        ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>`
-                        : "N/A";
-                    const cliente = `${clienteName}<br>${buyerProfile}`;
-                    const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
-                    const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
-                    const documentElements = entry.getElementsByTagName("cac:ExternalReference");
-                    const documentos = Array.from(documentElements).map((doc, index) => {
-                        const uriElement = doc.getElementsByTagName("cbc:URI")[0];
-                        return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
-                    });
-                    const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
-                    const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
-                    const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
-                    const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
-                    const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
-                    const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
-                    const fechaAnuncio = additionalPublicationElement
-                        ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
-                        : "N/A";
-                    const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
-                    const fechaFinal = tenderDeadlineElement
-                        ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
-                        : "N/A";
-                    const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
-                    const estadoCode = estadoElement ? estadoElement.textContent : "N/A";
-                    const estado = estadoMapping[estadoCode] || "N/A";
-                    if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
-                        (importe >= importeFilter) &&
-                        (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
-                        (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
-                        (estadoFilter === "" || estado === estadoFilter) &&
-                        (procedimientoFilter === "" || procedureCode === procedimientoFilter)) {
-                        tableContent += `<tr>
-                            <td>${title}</td>
-                            <td>${cpvs.join(", ") || "N/A"}</td>
-                            <td>${formattedImporte}</td>
-                            <td>${procedureCode}</td>
-                            <td>${cliente}</td>
-                            <td>${contractNotification}</td>
-                            <td>${fechaAnuncio}</td>
-                            <td>${fechaFinal}</td>
-                            <td>${estado}</td>
-                            <td>${formatDate(updated)}</td>
-                            <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
-                            <td>${documentosHTML}</td>
-                        </tr>`;
-                    }
-                });
-                document.getElementById("licitacionesTable").innerHTML = tableContent;
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error").innerText = `❌ Error al mostrar licitaciones: ${error.message}`;
+ function convertToNumber(value) {
+    // Elimina los puntos que separan los miles y reemplaza la coma decimal por un punto
+    return parseFloat(value.replace(/\./g, '').replace(',', '.'));
+}
+
+function fetchAndDisplayLicitaciones(entries) {
+    try {
+        const atomLinkElement = document.getElementById("atomLink");
+        atomLinkElement.href = nextFeedUrl || initialFeedUrl;
+        atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
+        let tableContent = "<tr><th>Título</th><th>CPV</th><th>Importe</th><th>Procedimiento</th><th>Cliente</th><th>Nº Expediente</th><th>Fecha del Anuncio</th><th>Fecha Final</th><th>Estado</th><th>Fecha Actualización</th><th>Enlace</th><th>Documentos</th></tr>";
+        const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
+        const importeFilterValue = document.getElementById("importeFilter").value;
+        const importeFilter = importeFilterValue ? convertToNumber(importeFilterValue) : 0; // Convertir el valor del filtro
+        const clienteFilter = document.getElementById("clienteFilter").value.toLowerCase();
+        const expedienteFilter = document.getElementById("expedienteFilter").value.toLowerCase();
+        const estadoFilter = document.getElementById("estadoFilter").value;
+        const procedimientoFilter = document.getElementById("procedimientoFilter").value;
+        entries.forEach(entry => {
+            const title = entry.querySelector("title")?.textContent || "N/A";
+            const updated = entry.querySelector("updated")?.textContent || "N/A";
+            const link = entry.querySelector("link")?.getAttribute("href") || "#";
+            const importeElement = entry.getElementsByTagName("cbc:TotalAmount")[0];
+            const importe = importeElement ? parseFloat(importeElement.textContent) : 0;
+            const formattedImporte = formatPrice(importe);
+            const clienteElement = entry.getElementsByTagName("cac:PartyName")[0];
+            const clienteName = clienteElement ? clienteElement.getElementsByTagName("cbc:Name")[0]?.textContent : "N/A";
+            const buyerProfileElement = entry.getElementsByTagName("cbc:BuyerProfileURIID")[0];
+            const buyerProfile = buyerProfileElement 
+                ? `<a href='${buyerProfileElement.textContent}' target='_blank' class='toggle-button'>Ver Perfil</a>` 
+                : "N/A";
+            const cliente = `${clienteName}<br>${buyerProfile}`;
+            const cpvElements = entry.getElementsByTagName("cbc:ItemClassificationCode");
+            const cpvs = Array.from(cpvElements).map(el => el.textContent.toLowerCase());
+            const documentElements = entry.getElementsByTagName("cac:ExternalReference");
+            const documentos = Array.from(documentElements).map((doc, index) => {
+                const uriElement = doc.getElementsByTagName("cbc:URI")[0];
+                return uriElement ? `<a href='${uriElement.textContent}' target='_blank'>Documento ${index + 1}</a>` : "";
+            });
+            const documentosHTML = documentos.length > 0 ? `<button class='toggle-button' onclick='toggleVisibility(this)'>Mostrar Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` : "N/A";
+            const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
+            const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
+            const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
+            const contractNotification = contractNotificationElement ? contractNotificationElement.textContent : "N/A";
+            const additionalPublicationElement = entry.getElementsByTagName("cac-place-ext:AdditionalPublicationDocumentReference")[0];
+            const fechaAnuncio = additionalPublicationElement 
+                ? formatDate(additionalPublicationElement.getElementsByTagName("cbc:IssueDate")[0]?.textContent)
+                : "N/A";
+            const tenderDeadlineElement = entry.getElementsByTagName("cac:TenderSubmissionDeadlinePeriod")[0];
+            const fechaFinal = tenderDeadlineElement 
+                ? formatDate(tenderDeadlineElement.getElementsByTagName("cbc:EndDate")[0]?.textContent)
+                : "N/A";
+            const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
+            const estadoCode = estadoElement ? estadoElement.textContent : "N/A";
+            const estado = estadoMapping[estadoCode] || "N/A";
+            if ((cpvFilter === "" || cpvs.some(cpv => cpv.includes(cpvFilter))) &&
+                (importe >= importeFilter) && // Comparar con el valor convertido
+                (clienteFilter === "" || clienteName.toLowerCase().includes(clienteFilter)) &&
+                (expedienteFilter === "" || contractNotification.toLowerCase().includes(expedienteFilter)) &&
+                (estadoFilter === "" || estado === estadoFilter) &&
+                (procedimientoFilter === "" || procedureCode === procedimientoFilter)) {
+                tableContent += `<tr>
+                    <td>${title}</td>
+                    <td>${cpvs.join(", ") || "N/A"}</td>
+                    <td>${formattedImporte}</td>
+                    <td>${procedureCode}</td>
+                    <td>${cliente}</td>
+                    <td>${contractNotification}</td>
+                    <td>${fechaAnuncio}</td>
+                    <td>${fechaFinal}</td>
+                    <td>${estado}</td>
+                    <td>${formatDate(updated)}</td>
+                    <td><a href='${link}' target='_blank' class='ver-licitacion-button'>Ver Licitación</a></td>
+                    <td>${documentosHTML}</td>
+                </tr>`;
             }
-        }
+        });
+        document.getElementById("licitacionesTable").innerHTML = tableContent;
+    } catch (error) {
+        console.error(error);
+        document.getElementById("error").innerText = `❌ Error en fetchAndDisplayLicitaciones: ${error.message}`;
+    }
+}
 
         function toggleVisibility(button) {
             const content = button.nextElementSibling;
             content.style.display = content.style.display === "block" ? "none" : "block";
-        }
-
-        async function checkNewFeed() {
-            if (isProcessing) return;
-            isProcessing = true;
-            try {
-                document.getElementById("status").innerText = "🔍 Cargando datos...";
-                document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
-                await loadFeeds(1);
-                document.getElementById("status").style.display = "none";
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error").innerText = `❌ Error en checkNewFeed: ${error.message}`;
-            } finally {
-                isProcessing = false;
-            }
-        }
-
-        async function loadMoreFeeds() {
-            if (isProcessing) return;
-            isProcessing = true;
-            try {
-                document.getElementById("status").innerText = "🔍 Cargando más datos...";
-                document.getElementById("status").style.display = "block";
-                document.getElementById("error").innerText = "";
-                const maxFeeds = parseInt(document.getElementById("maxFeedsInput").value) || 1;
-                await loadFeeds(maxFeeds);
-                document.getElementById("status").style.display = "none";
-            } catch (error) {
-                console.error(error);
-                document.getElementById("error").innerText = `❌ Error en loadMoreFeeds: ${error.message}`;
-            } finally {
-                isProcessing = false;
-            }
         }
 
         window.onload = checkNewFeed;
