@@ -11,6 +11,28 @@ body {
     padding: 10px;
 }
 
+/* Orden fijo para todos los tamaños de pantalla */
+.header {
+    order: 1; /* Título y descripción primero */
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.filters {
+    order: 2; /* Filtros segundo */
+    width: 100%;
+    padding: 10px;
+    background-color: transparent;
+    box-shadow: none;
+    margin-bottom: 10px;
+    border-radius: 10px;
+}
+
+.cards {
+    order: 3; /* Tarjetas tercero */
+    width: 100%;
+}
+
 /* Estilos para escritorio */
 @media (min-width: 601px) {
     .container {
@@ -19,50 +41,18 @@ body {
     }
 
     .filters {
-        width: 300px;
-        padding: 15px;
-        background-color: transparent;
-        box-shadow: none;
-        margin-bottom: 0;
-        border-radius: 10px;
+        width: 300px; /* Ancho fijo para los filtros en pantallas grandes */
+        order: 1; /* Filtros a la izquierda */
     }
 
     .cards {
-        flex: 1;
+        flex: 1; /* El contenido ocupa el resto del espacio */
+        order: 2; /* Contenido a la derecha */
     }
 
     .header {
-        display: block; /* Mostrar en escritorio */
+        order: 1; /* Título y descripción dentro de la columna de contenido */
         margin-bottom: 20px;
-    }
-}
-
-/* Estilos para móviles */
-@media (max-width: 600px) {
-    .container {
-        padding: 5px;
-        flex-direction: column;
-    }
-
-    .header {
-        order: 1; /* Título y descripción primero */
-        text-align: center;
-        margin-bottom: 20px;
-    }
-
-    .filters {
-        order: 2; /* Filtros segundo */
-        width: 100%;
-        padding: 10px;
-        background-color: transparent;
-        box-shadow: none;
-        margin-bottom: 10px;
-        border-radius: 10px;
-    }
-
-    .cards {
-        order: 3; /* Tarjetas tercero */
-        width: 100%;
     }
 }
 
@@ -115,14 +105,14 @@ body {
 
 .load-more-container {
     display: flex;
-    flex-direction: column; /* Cambiar a columna para que el mensaje esté debajo */
-    align-items: flex-start; /* Alinear a la izquierda */
+    flex-direction: column;
+    align-items: flex-start;
     gap: 10px;
     margin-top: 10px;
 }
 
 .load-more-container input {
-    width: 80px; /* Reducir el ancho del campo numérico */
+    width: 80px;
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 5px;
@@ -130,9 +120,9 @@ body {
 }
 
 #loadMoreButton {
-    width: 100%; /* Ocupar todo el ancho disponible */
+    width: 100%;
     padding: 8px;
-    background-color: #007bff; /* Azul por defecto */
+    background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
@@ -140,18 +130,18 @@ body {
 }
 
 #loadMoreButton.loading {
-    background-color: #007bff; /* Azul mientras carga */
+    background-color: #007bff;
 }
 
 #loadMoreButton.finished {
-    background-color: #28a745; /* Verde cuando termina */
+    background-color: #28a745;
 }
 
 .progress-indicator {
     font-weight: bold;
     font-size: 12px;
-    color: #555; /* Color del texto */
-    margin-top: 0px; /* Espacio entre el botón y el mensaje */
+    color: #555;
+    margin-top: 0px;
 }
 
 .cards {
@@ -190,8 +180,8 @@ body {
 }
 
 .card .cpv {
-    display: inline-flex; /* Alinear el texto y el botón en la misma línea */
-    align-items: center; /* Centrar verticalmente */
+    display: inline-flex;
+    align-items: center;
     margin: 5px 0;
     color: #555;
 }
@@ -203,17 +193,17 @@ body {
     cursor: pointer;
     padding: 0;
     margin-left: 5px;
-    display: inline-flex; /* Asegurar que el botón esté en línea */
-    align-items: center; /* Centrar verticalmente */
+    display: inline-flex;
+    align-items: center;
 }
 
 .card .cpv .cpv-list-hidden {
-    display: none; /* Ocultar por defecto */
-    margin-left: 5px; /* Espacio entre el botón y los CPV adicionales */
+    display: none;
+    margin-left: 5px;
 }
 
 .card .cpv .cpv-list-hidden.visible {
-    display: inline; /* Mostrar en la misma línea */
+    display: inline;
 }
 
 .card .cliente {
