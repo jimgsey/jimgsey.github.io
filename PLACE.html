@@ -4,22 +4,553 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Monitor de Licitaciones</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+	<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+    }
+    .header {
+        text-align: center;
+        margin-bottom: 20px;
+        padding: 10px;
+    }
+
+    .header h3 {
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .header .info-box {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        text-align: center;
+        max-width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .left-column {
+		flex: 1;
+		max-width: 30%;
+		display: flex;
+		flex-direction: column;
+		align-items: center; 
+		gap: 15px;
+    }
+
+    .right-column {
+        flex: 2;
+        max-width: 70%;
+    }
+    .container {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+    }
+    @media (min-width: 601px) {
+        .container {
+            flex-direction: row; 
+            gap: 20px;
+        }
+
+        .filters, .description, #atomContainer  {
+			max-width: 280px;
+        }
+
+        .cards {
+            flex: 1; 
+        }
+    }
+
+    /* Estilos para móviles */
+    @media (max-width: 600px) {
+        .container {
+            flex-direction: column; 
+			width: 100%;
+			max-width: 100%; 
+			padding: 0 10px; 
+			box-sizing: border-box; 
+        }
+
+        .left-column, .right-column {
+                width: 100%;
+                max-width: none; 
+        }
+        .filters, .description, .download-box, #atomContainer, #loadMoreButton {
+            width: 100%; 
+			max-width: none; 
+        }
+    }
+
+    /* Estilos para los filtros */
+    .filters h2 {
+        margin-top: 0;
+        font-size: 18px;
+    }
+
+    .filters input,
+    .filters select,
+    .filters button {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+        box-sizing: border-box;
+        background-color: rgba(255, 255, 255, 0.8);
+    }
+
+    .filters button {
+        background-color: #007bff;
+        color: white;
+        cursor: pointer;
+        border: none;
+    }
+
+    .filters button:hover {
+        background-color: #0056b3;
+    }
+
+    .load-more-container {
+        display: flex;
+        flex-direction: column; 
+        gap: 10px; 
+    }
+
+    .input-loading-wrapper {
+        display: flex; 
+        align-items: center; 
+        gap: 10px; 
+    }
+
+    #maxFeedsInput {
+        width: 90px; 
+        padding: 8px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 14px;
+    }
+
+    .progress-indicator {
+        font-weight: bold;
+        font-size: 14px;
+        color: #555;
+    }
+
+    #loadMoreButton {
+        width: 100%; 
+		max-width: 280px; 
+        padding: 8px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    #loadMoreButton:hover {
+        background-color: #0056b3;
+    }
+
+    .progress-indicator {
+        font-weight: bold;
+        font-size: 12px;
+        color: #555;
+        margin-top: 0px;
+    }
+
+    .cards {
+        width: 100%;
+    }
+
+    .card {
+        background-color: #fff;
+        padding: 15px;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+        font-size: 14px;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+
+    .card-header .expediente {
+        font-size: 14px;
+        color: #333;
+    }
+
+    .card-header .actualizado {
+        font-size: 12px;
+        color: #777;
+    }
+
+    .card .objeto {
+        margin: 5px 0;
+        color: #555;
+    }
+
+    .card .cpv {
+        display: inline-flex;
+        align-items: center;
+        margin: 5px 0;
+        color: #555;
+    }
+
+    .card .cpv .toggle-cpv {
+        background: none;
+        border: none;
+        color: #007bff;
+        cursor: pointer;
+        padding: 0;
+        margin-left: 5px;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .card .cpv .cpv-list-hidden {
+        display: none;
+        margin-left: 5px;
+    }
+
+    .card .cpv .cpv-list-hidden.visible {
+        display: inline;
+    }
+
+    .card .cliente {
+        margin: 5px 0;
+        color: #777;
+    }
+
+    .card .cliente .ver-perfil {
+        font-size: 12px;
+        color: #007bff;
+        text-decoration: none;
+        margin-left: 5px;
+    }
+
+    .card .cliente .ver-perfil:hover {
+        text-decoration: underline;
+    }
+
+    .card .divider {
+        border: 0;
+        border-top: 1px solid #ddd;
+        margin: 10px 0;
+    }
+
+    .card-details {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 10px 0;
+    }
+
+    .card-details p {
+        margin: 0;
+        color: #555;
+    }
+
+    .card-details i {
+        margin-right: 5px;
+        color: #777;
+    }
+
+    .ver-licitacion-button {
+        background-color: #28a745;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        text-decoration: none;
+        display: inline-block;
+        margin-top: 10px;
+    }
+
+    .ver-licitacion-button:hover {
+        background-color: #218838;
+    }
+
+    .toggle-button {
+        background-color: #007bff;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        cursor: pointer;
+        border: none;
+        margin-top: 10px;
+    }
+
+    .toggle-button:hover {
+        background-color: #0056b3;
+    }
+
+    .document-list {
+        display: none;
+        margin-top: 10px;
+    }
+
+    .document-list.visible {
+        display: block;
+    }
+
+    .error-message {
+        color: red;
+        font-weight: bold;
+        margin-top: 20px;
+        text-align: center;
+    }
+
+    .atom-link {
+        margin-bottom: 20px;
+        font-size: 14px;
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .atom-link:hover {
+        text-decoration: underline;
+    }
+
+    .progress-indicator {
+        margin-top: 10px;
+        font-weight: bold;
+        text-align: center;
+        font-size: 12px;
+    }
+    .description {
+	    width: 100%; 
+		max-width: 280px; 
+		text-align: center;
+		box-sizing: border-box; 
+        margin-top: 10px;
+        font-size: 14px;
+        color: #555;
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+    }
+    .atom-box {
+        background-color: #fff;
+        padding: 10px;
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 10px;
+    }
+    .cards h3 {
+        text-align: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    .cards .info-box {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #ddd;
+        text-align: center;
+        margin-bottom: 20px;
+        max-width: 80%;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .card .lote {
+        margin: 10px 0;
+        color: #555;
+        font-size: 14px;
+    }
+
+    .card .lote strong {
+        color: #333;
+    }
+
+    .card-details .fa-map-marker-alt {
+        color: #007bff;
+        margin-right: 5px;
+    }
+
+    .contacto {
+        margin: 5px 0;
+        color: #555;
+        font-size: 14px;
+    }
+
+    .contacto span {
+        display: block;
+        margin: 3px 0;
+    }
+
+    .contacto .fa-phone,
+    .contacto .fa-envelope {
+        color: #007bff;
+        margin-right: 5px;
+    }
+    .estado-anuncio,
+    .estado-en-plazo,
+    .estado-otros {
+        font-size: 11px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        display: inline-block;
+        margin-left: 1px;
+    }
+
+    .estado-anuncio {
+        background-color: #ffcc00;
+        color: #000;
+    }
+
+    .estado-en-plazo {
+        background-color: #4caf50;
+        color: #fff;
+    }
+
+    .estado-otros {
+        background-color: #f44336;
+        color: #fff;
+    }
+        .atom-list-box {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+
+        .atom-list-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .atom-list {
+            max-height: 150px; 
+            overflow-y: auto; 
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        .atom-list div {
+            padding: 5px;
+            cursor: pointer;
+            color: #007bff;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .atom-list div:hover {
+            background-color: #f9f9f9;
+        }
+
+        .atom-list div:last-child {
+            border-bottom: none;
+        }
+        .mobile-toggle-button {
+            display: none; 
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .mobile-toggle-button i {
+            margin-right: 5px;
+        }
+        @media (max-width: 600px) {
+            .filters, .load-more-container {
+                display: none;
+            }
+
+            .mobile-toggle-button {
+                display: block; 
+            }
+        }
+
+        .filters.visible, .load-more-container.visible {
+            display: block;
+        }
+		.download-box {
+		    background-color: #fff;
+			max-width: 250px ;
+		    padding: 15px;
+		    border-radius: 10px;
+		    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		    margin-bottom: 20px;
+		    text-align: center;
+		}
+
+		.download-box h4 {
+ 		   margin: 0 0 10px 0;
+		   font-size: 18px;
+ 		   color: #333;
+		}
+
+		.download-box p {
+		   margin: 0 0 15px 0;
+ 		   font-size: 14px;
+ 		   color: #555;
+		}
+
+		.download-button {
+		    background-color: #28a745;
+		    color: white;
+ 		   padding: 10px 20px;
+ 		   border: none;
+ 		   border-radius: 4px;
+ 		   cursor: pointer;
+ 		   font-size: 13px;
+ 		   display: inline-flex;
+ 		   align-items: center;
+ 		   gap: 4px;
+		}
+
+		.download-button:hover {
+ 		   background-color: #218838;
+		}
+
+		.download-button i {
+    		font-size: 16px;
+		}
+</style>
 </head>
 <body>
     <!-- Título y descripción (siempre arriba) -->
     <div class="header">
         <h3>Anuncios Licitaciones</h3>
         <div class="info-box">
-            Creado para revisar los anuncios que cada día se publican en la base de datos.
+            Prueba de concepto para comprobar las últimas publicaciones en la Plataforma de Contratación del Estado
+ 
         </div>
     </div>
 
     <!-- Contenedor principal para filtros y tarjetas -->
-    <div class="container">
-        <!-- Columna de filtros (izquierda en pantallas grandes) -->
-        <div class="filters">
+ <div class="container">
+    <!-- Columna de filtros (izquierda en pantallas grandes) -->
+    <div class="left-column">
+        <!-- Botón para mostrar/ocultar filtros en móvil -->
+        <button id="toggleFiltersButton" class="mobile-toggle-button">
+            <i class="fas fa-filter"></i> Introducir Filtros
+        </button>
+        
+        <!-- Contenedor de filtros (oculto por defecto en móvil) -->
+        <div id="filtersContainer" class="filters">
             <h2>Filtros</h2>
             <input type="text" id="cpvFilter" placeholder="Código CPV">
             <input type="text" id="importeFilter" placeholder="Importe mínimo">
@@ -61,28 +592,50 @@
                 <option value="Concurso de Proyectos">Concurso de Proyectos</option>
             </select>
             <button onclick="checkNewFeed()">Aplicar Filtros</button>
-            <div class="load-more-container">
-                <div class="input-loading-wrapper">
-                    <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
-                    <div id="progress" class="progress-indicator"></div>
+        </div>
+
+        <!-- Botón para mostrar/ocultar carga de Atom en móvil -->
+        <button id="toggleAtomButton" class="mobile-toggle-button">
+            <i class="fas fa-history"></i> Cargar más historial
+        </button>
+
+        <!-- Contenedor de carga de Atom (oculto por defecto en móvil) -->
+        <div id="atomContainer" class="load-more-container">
+            <div class="input-loading-wrapper">
+                <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1">
+                <div id="progress" class="progress-indicator"></div>
+            </div>
+            <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>            
+            <div class="atom-list-box">
+                <h4>Atom Cargados</h4>
+                <div id="atomList" class="atom-list">
+                    <!-- Aquí se añadirán dinámicamente los Atom cargados -->
                 </div>
-                <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>
-            </div>
-            <div class="atom-box">
-                <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
-            </div>
-            <div class="description">
-                Para ampliar la base de datos es necesario que cargues más Atom.
             </div>
         </div>
 
+        <div class="description">
+            La información se recoge de <a href="https://contrataciondelsectorpublico.gob.es/datosabiertos/especificacion-sindicacion.pdf" target="_blank" rel="noopener noreferrer">Códice</a> y es publicada en XML. Los Atoms se publican al día siguiente hábil a media tarde 
+        </div>
+		<!-- Tarjeta para descargar Excel -->
+		<div class="download-box">
+		    <h4>Exportar Datos</h4>
+		    <p>Crea un archivo Excel con los datos de las licitaciones.</p>
+		    <button onclick="exportToCSV()" class="download-button">
+ 		       <i class="fas fa-file-excel"></i> Descargar Excel
+		    </button>
+		</div>
+    </div>
+
         <!-- Columna de tarjetas (derecha en pantallas grandes) -->
+		<div class="right-column">
         <div class="cards">
             <p id="status" style="display: none;">🔍 Cargando datos...</p>
             <p id="error" class="error-message"></p>
             <div id="licitacionesContainer"></div>
         </div>
     </div>
+ </div>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
         const proxyUrl = "https://corsmirror.com/v1?url=";
@@ -90,6 +643,8 @@
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
+		let loadedAtoms = [];
+		let isFirstLoad = false;
 
         const estadoMapping = {
             "PRE": "Anuncio Previo",
@@ -111,6 +666,15 @@
             "8": "Subasta Electrónica",
             "9": "Concurso de Proyectos"
         };
+		document.getElementById("toggleFiltersButton").addEventListener("click", () => {
+		    const filtersContainer = document.getElementById("filtersContainer");
+		    filtersContainer.classList.toggle("visible");
+		});
+
+		document.getElementById("toggleAtomButton").addEventListener("click", () => {
+		    const atomContainer = document.getElementById("atomContainer");
+		    atomContainer.classList.toggle("visible");
+		});
 
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
@@ -133,6 +697,92 @@
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2
             }).format(amount);
+        }
+		
+        function exportToCSV() {
+            if (allEntries.length === 0) {
+                alert("No hay datos para exportar.");
+                return;
+            }
+
+            const procedureCodeMapping = {
+                "1": "Abierto",
+                "2": "Restringido",
+                "3": "Negociado con Publicidad",
+                "4": "Negociado sin Publicidad",
+                "5": "Diálogo Competitivo",
+                "6": "Contrato Menor",
+                "7": "Asociación para la Innovación",
+                "8": "Subasta Electrónica",
+                "9": "Concurso de Proyectos"
+            };
+
+            const tipoMapping = {
+                "1": "Suministros",
+                "2": "Servicios",
+                "3": "Obras",
+                "21": "Gestión de Servicios Públicos",
+                "31": "Concesión de Obras Públicas",
+                "40": "Colaboración entre el sector público y sector privado",
+                "7": "Administrativo especial",
+                "8": "Privado",
+                "50": "Patrimonial",
+                "999": "Otros"
+            };
+
+            const headers = [
+                "Nº Expediente", "Ver Licitación", "Título", "Importe", "Cliente", "Estado", "Fecha Final", "Hora Final",
+                "Lotes", "Contacto (Email)", "CPV", "Tipo de Procedimiento", "Tipo de Contrato"
+            ];
+
+            const rows = allEntries.map(entry => {
+                const expediente = entry.getElementsByTagNameNS("*", "ContractFolderID")[0]?.textContent || "N/A";
+                const link = entry.querySelector("link")?.getAttribute("href") || "#";
+                const titulo = (entry.querySelector("title")?.textContent || "N/A").substring(0, 255);
+                const importe = entry.getElementsByTagNameNS("*", "TotalAmount")[0]?.textContent || "N/A";
+                const cliente = (entry.getElementsByTagNameNS("*", "PartyName")[0]?.getElementsByTagNameNS("*", "Name")[0]?.textContent || "N/A").substring(0, 255);
+                const estado = entry.getElementsByTagNameNS("*", "ContractFolderStatusCode")[0]?.textContent || "N/A";
+                const fechaFinal = entry.getElementsByTagNameNS("*", "TenderSubmissionDeadlinePeriod")[0]?.getElementsByTagNameNS("*", "EndDate")[0]?.textContent || "N/A";
+                const horaFinal = entry.getElementsByTagNameNS("*", "TenderSubmissionDeadlinePeriod")[0]?.getElementsByTagNameNS("*", "EndTime")[0]?.textContent || "N/A";
+                const cpv = Array.from(entry.getElementsByTagNameNS("*", "ItemClassificationCode")).map(el => el.textContent).join(", ");
+                const tipoProcedimientoCode = entry.getElementsByTagNameNS("*", "ProcedureCode")[0]?.textContent || "N/A";
+                const tipoProcedimiento = procedureCodeMapping[tipoProcedimientoCode] || "N/A";
+                const tipoContratoCode = entry.getElementsByTagNameNS("*", "TypeCode")[0]?.textContent || "N/A";
+                const tipoContrato = tipoMapping[tipoContratoCode] || "N/A";
+
+                const loteElements = entry.getElementsByTagNameNS("*", "ProcurementProjectLot");
+                const lotes = Array.from(loteElements).map(lote => {
+                    const idLote = lote.getElementsByTagNameNS("*", "ID")[0]?.textContent || "N/A";
+                    const precio = lote.getElementsByTagNameNS("*", "TaxExclusiveAmount")[0]?.textContent || "N/A";
+                    return `Lote ${idLote}: ${precio}`;
+                }).join("; ");
+
+                const email = entry.getElementsByTagNameNS("*", "ElectronicMail")[0]?.textContent || "N/A";
+
+                return [
+                    expediente, link, titulo, importe, cliente, estado, fechaFinal, horaFinal, lotes, email, cpv, tipoProcedimiento, tipoContrato
+                ];
+            });
+
+            const csvContent = [
+                headers.join(";"),
+                ...rows.map(row => row.join(";"))
+            ].join("\n");
+
+            const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+
+            const now = new Date();
+            const timestamp = `${now.getFullYear()}${(now.getMonth() + 1).toString().padStart(2, "0")}${now.getDate().toString().padStart(2, "0")}_${now.getHours().toString().padStart(2, "0")}${now.getMinutes().toString().padStart(2, "0")}${now.getSeconds().toString().padStart(2, "0")}`;
+            const filename = `licitaciones_${timestamp}.csv`;
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
         async function fetchWithTimeout(url, options = {}, timeout = 15000) {
@@ -192,6 +842,11 @@
         async function loadFeedsInBatches(maxFeeds) {
             let feedCount = 0;
             let currentFeedUrl = nextFeedUrl;
+
+            if (!isFirstLoad) {
+                loadedAtoms = loadedAtoms.filter(atom => atom.name === "Completo3.atom");
+            }
+
             while (currentFeedUrl && feedCount < maxFeeds) {
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
                 try {
@@ -204,6 +859,19 @@
                     const xmlDoc = parser.parseFromString(text, "text/xml");
                     const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
                     allEntries.push(...feedEntries);
+
+                    if (isFirstLoad) {
+                        loadedAtoms.push({ name: "Completo3.atom", url: currentFeedUrl });
+                        isFirstLoad = false; 
+                    }
+
+                    const atomName = currentFeedUrl.split("Completo3_").pop(); 
+                    if (atomName !== "Completo3.atom") { 
+                        loadedAtoms.push({ name: atomName, url: currentFeedUrl });
+                    }
+
+                    updateAtomList(); 
+
                     const nextLink = xmlDoc.querySelector('link[rel="next"]');
                     currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                     feedCount++;
@@ -219,6 +887,61 @@
             }
             nextFeedUrl = currentFeedUrl;
             fetchAndDisplayLicitaciones(allEntries);
+        }
+		
+		       
+        function updateAtomList() {
+            const atomListContainer = document.getElementById("atomList");
+            atomListContainer.innerHTML = ""; 
+
+            loadedAtoms.forEach((atom, index) => {
+                const atomElement = document.createElement("a"); 
+                atomElement.textContent = atom.name; 
+                atomElement.href = atom.url; 
+                atomElement.target = "_blank"; 
+                atomElement.style.display = "block"; 
+                atomElement.style.padding = "5px";
+                atomElement.style.color = "#007bff";
+                atomElement.style.textDecoration = "none";
+                atomElement.style.borderBottom = "1px solid #eee";
+                atomElement.style.cursor = "pointer";
+
+                atomElement.addEventListener("mouseenter", () => {
+                    atomElement.style.backgroundColor = "#f9f9f9";
+                });
+                atomElement.addEventListener("mouseleave", () => {
+                    atomElement.style.backgroundColor = "transparent";
+                });
+
+                atomListContainer.appendChild(atomElement);
+            });
+        }
+
+        async function loadAtomFeed(url) {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+
+                const response = await fetchWithTimeout(url);
+                if (!response.ok) {
+                    throw new Error(`No se pudo obtener el Atom: ${url}. Estado: ${response.status}`);
+                }
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
+                allEntries = feedEntries; 
+                fetchAndDisplayLicitaciones(allEntries);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en loadAtomFeed: ${error.message}`;
+            } finally {
+                isProcessing = false;
+                document.getElementById("status").style.display = "none";
+            }
         }
 
         function toggleVisibility(button) {
@@ -245,33 +968,30 @@
             return `${day}/${month}/${year}`;
         }
 
-function formatTime(dateString) {
-    if (!dateString || dateString === "N/A") return "N/A";
-    const date = new Date(dateString);
-    if (isNaN(date)) return "N/A";
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-}
+		function formatTime(dateString) {
+		    if (!dateString || dateString === "N/A") return "N/A";
+		    const date = new Date(dateString);
+		    if (isNaN(date)) return "N/A";
+ 		    const hours = String(date.getHours()).padStart(2, '0');
+ 		    const minutes = String(date.getMinutes()).padStart(2, '0');
+		    return `${hours}:${minutes}`;
+		}
 
-const tipoMapping = {
-    "1": "Suministros",
-    "2": "Servicios",
-    "3": "Obras",
-    "21": "Gestión de Servicios Públicos",
-    "31": "Concesión de Obras Públicas",
-    "40": "Colaboración entre el sector público y sector privado",
-    "7": "Administrativo especial",
-    "8": "Privado",
-    "50": "Patrimonial",
-    "999": "Otros"
-};
+		const tipoMapping = {
+		    "1": "Suministros",
+		    "2": "Servicios",
+		    "3": "Obras",
+		    "21": "Gestión de Servicios Públicos",
+		    "31": "Concesión de Obras Públicas",
+		    "40": "Colaboración entre el sector público y sector privado",
+		    "7": "Administrativo especial",
+		    "8": "Privado",
+		    "50": "Patrimonial",
+		    "999": "Otros"
+		};
 
 function fetchAndDisplayLicitaciones(entries) {
     try {
-        const atomLinkElement = document.getElementById("atomLink");
-        atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-        atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
         let cardsContent = "";
         const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
         const importeFilterValue = document.getElementById("importeFilter").value;
@@ -307,7 +1027,7 @@ function fetchAndDisplayLicitaciones(entries) {
             });
             const documentosHTML = documentos.length > 0 
                 ? `<button class='toggle-button' onclick='toggleVisibility(this)'><i class="fas fa-file"></i> Documentos</button><div class='document-list'>${documentos.join("<br>")}</div>` 
-                : ""; // No mostrar nada si no hay documentos
+                : ""; 
             const procedureCodeElement = entry.getElementsByTagName("cbc:ProcedureCode")[0];
             const procedureCode = procedureCodeElement ? procedureCodeMapping[procedureCodeElement.textContent] || "N/A" : "N/A";
             const contractNotificationElement = entry.getElementsByTagName("cbc:ContractFolderID")[0];
@@ -324,15 +1044,15 @@ function fetchAndDisplayLicitaciones(entries) {
             let horaFinal = "N/A";
 
             if (fechaFinalElement && fechaFinalElement.textContent) {
-                const fechaCompleta = fechaFinalElement.textContent.trim(); // Formato: "2025-02-07"
+                const fechaCompleta = fechaFinalElement.textContent.trim();
                 const [year, month, day] = fechaCompleta.split('-');
-                fechaFinal = `${day}/${month}/${year}`; // Formatear a "07/02/2025"
+                fechaFinal = `${day}/${month}/${year}`; 
             }
 
             if (horaFinalElement && horaFinalElement.textContent) {
-                const horaCompleta = horaFinalElement.textContent.trim(); // Formato: "23:59:00"
+                const horaCompleta = horaFinalElement.textContent.trim(); 
                 const [hours, minutes] = horaCompleta.split(':');
-                horaFinal = `${hours}:${minutes}`; // Formatear a "23:59"
+                horaFinal = `${hours}:${minutes}`; 
             }
 
             const estadoElement = entry.getElementsByTagName("cbc-place-ext:ContractFolderStatusCode")[0];
@@ -349,7 +1069,6 @@ function fetchAndDisplayLicitaciones(entries) {
             const ciudadElement = entry.getElementsByTagName("cbc:CityName")[0];
             const ciudad = ciudadElement ? ciudadElement.textContent : "N/A";
 
-            // Captura de todos los lotes y sus precios
             const loteElements = entry.getElementsByTagName("cac:ProcurementProjectLot");
             const lotes = Array.from(loteElements).map(lote => {
                 const idLote = lote.getElementsByTagName("cbc:ID")[0]?.textContent || "N/A";
@@ -358,7 +1077,6 @@ function fetchAndDisplayLicitaciones(entries) {
                 return { idLote, precio };
             });
 
-            // Captura de los datos de contacto
             const telefonoElement = entry.getElementsByTagName("cbc:Telephone")[0];
             const telefono = telefonoElement ? telefonoElement.textContent : null;
 
