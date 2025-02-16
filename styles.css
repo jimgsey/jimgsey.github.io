@@ -5,58 +5,13 @@ body {
     background-color: #f4f4f4;
 }
 
-.container {
-    display: flex;
-    flex-direction: column;
-    padding: 10px;
-}
-
-/* Orden fijo para todos los tamaños de pantalla */
+/* Título y descripción (siempre arriba) */
 .header {
-    order: 1; /* Título y descripción primero */
     text-align: center;
     margin-bottom: 20px;
-}
-
-.filters {
-    order: 2; /* Filtros segundo */
-    width: 100%;
     padding: 10px;
-    background-color: transparent;
-    box-shadow: none;
-    margin-bottom: 10px;
-    border-radius: 10px;
 }
 
-.cards {
-    order: 3; /* Tarjetas tercero */
-    width: 100%;
-}
-
-/* Estilos para escritorio */
-@media (min-width: 601px) {
-    .container {
-        flex-direction: row;
-        gap: 20px;
-    }
-
-    .filters {
-        width: 300px; /* Ancho fijo para los filtros en pantallas grandes */
-        order: 1; /* Filtros a la izquierda */
-    }
-
-    .cards {
-        flex: 1; /* El contenido ocupa el resto del espacio */
-        order: 2; /* Contenido a la derecha */
-    }
-
-    .header {
-        order: 1; /* Título y descripción dentro de la columna de contenido */
-        margin-bottom: 20px;
-    }
-}
-
-/* Estilos para el título y descripción */
 .header h3 {
     font-size: 24px;
     margin-bottom: 10px;
@@ -72,6 +27,41 @@ body {
     margin-left: auto;
     margin-right: auto;
 }
+
+/* Contenedor principal para filtros y tarjetas */
+.container {
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+}
+
+/* Estilos para escritorio */
+@media (min-width: 601px) {
+    .container {
+        flex-direction: row; /* Dos columnas en pantallas grandes */
+        gap: 20px;
+    }
+
+    .filters {
+        width: 300px; /* Ancho fijo para los filtros */
+    }
+
+    .cards {
+        flex: 1; /* Ocupa el resto del espacio */
+    }
+}
+
+/* Estilos para móviles */
+@media (max-width: 600px) {
+    .container {
+        flex-direction: column; /* Apilado vertical en móviles */
+    }
+
+    .filters {
+        width: 100%; /* Ocupa todo el ancho en móviles */
+    }
+}
+
 
 /* Estilos para los filtros */
 .filters h2 {
