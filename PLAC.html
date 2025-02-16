@@ -35,7 +35,21 @@
         margin-left: auto;
         margin-right: auto;
     }
+    /* Columna izquierda: Filtros, historial y descripción */
+    .left-column {
+		flex: 1;
+		max-width: 30%;
+		display: flex;
+		flex-direction: column;
+		align-items: center; /* Centrar los elementos */
+		gap: 15px;
+    }
 
+    /* Columna derecha: Carga de información */
+    .right-column {
+        flex: 2;
+        max-width: 70%;
+    }
     /* Contenedor principal para filtros y tarjetas */
     .container {
         display: flex;
@@ -50,8 +64,8 @@
             gap: 20px;
         }
 
-        .filters {
-            width: 300px; /* Ancho fijo para los filtros */
+        .filters, .description, #atomContainer  {
+			max-width: 280px; /* Fijar tamaño uniforme */
         }
 
         .cards {
@@ -63,10 +77,19 @@
     @media (max-width: 600px) {
         .container {
             flex-direction: column; /* Apilado vertical en móviles */
+			width: 100%;
+			max-width: 100%; /* No debe sobrepasar el ancho */
+			padding: 0 10px; /* Agrega un pequeño padding en lugar de margen grande */
+			box-sizing: border-box; /* Asegura que el padding no aumente el ancho */
         }
 
-        .filters {
+        .left-column, .right-column {
+                width: 100%;
+                max-width: none; /* Evita que se limiten por el tamaño de escritorio */
+        }
+        .filters, .description, #atomContainer, #loadMoreButton {
             width: 100%; /* Ocupa todo el ancho en móviles */
+			max-width: none; /* Eliminar límites de ancho */
         }
     }
 
@@ -128,6 +151,7 @@
 
     #loadMoreButton {
         width: 100%; /* Ocupa el ancho completo */
+		max-width: 280px; /* Evitar que sea más ancho que los otros elementos */
         padding: 8px;
         background-color: #007bff;
         color: white;
@@ -313,6 +337,10 @@
 
     /* Descripciones */
     .description {
+	    width: 100%; /* Ajusta al mismo ancho que los demás elementos */
+		max-width: 280px; /* Misma medida que filtros e historial */
+		text-align: center;
+		box-sizing: border-box; /* Asegura que padding no afecte el tamaño */
         margin-top: 10px;
         font-size: 14px;
         color: #555;
@@ -409,6 +437,79 @@
         background-color: #f44336;
         color: #fff;
     }
+    /* Estilos para la nueva tarjeta de Atom cargados */
+        .atom-list-box {
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            width: 100%; /* Ajustar al mismo ancho que la tarjeta de texto inferior */
+            box-sizing: border-box; /* Incluir padding en el ancho */
+        }
+
+        .atom-list-box h4 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .atom-list {
+            max-height: 150px; /* Altura máxima para el scroll */
+            overflow-y: auto; /* Habilitar scroll vertical */
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 5px;
+        }
+
+        .atom-list div {
+            padding: 5px;
+            cursor: pointer;
+            color: #007bff;
+            font-size: 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .atom-list div:hover {
+            background-color: #f9f9f9;
+        }
+
+        .atom-list div:last-child {
+            border-bottom: none;
+        }
+		/* Estilos para los botones en móvil */
+        .mobile-toggle-button {
+            display: none; /* Ocultar en pantallas grandes */
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        .mobile-toggle-button i {
+            margin-right: 5px;
+        }
+
+        /* Ocultar filtros y carga de Atom en móvil por defecto */
+        @media (max-width: 600px) {
+            .filters, .load-more-container {
+                display: none;
+            }
+
+            .mobile-toggle-button {
+                display: block; /* Mostrar botones en móvil */
+            }
+        }
+
+        /* Mostrar filtros y carga de Atom cuando están activos */
+        .filters.visible, .load-more-container.visible {
+            display: block;
+        }
 </style>
 </head>
 <body>
@@ -416,14 +517,22 @@
     <div class="header">
         <h3>Anuncios Licitaciones</h3>
         <div class="info-box">
-            Creado para revisar los anuncios que cada día se publican en la base de datos.
+            Prueba de concepto para comprobar las últimas publicaciones de licitaciones publicadas en Hacienda bajo el sistema Códice <a href="https://contrataciondelsectorpublico.gob.es/datosabiertos/especificacion-sindicacion.pdf" target="_blank" rel="noopener noreferrer">ver manual</a>
+ 
         </div>
     </div>
 
     <!-- Contenedor principal para filtros y tarjetas -->
-    <div class="container">
-        <!-- Columna de filtros (izquierda en pantallas grandes) -->
-        <div class="filters">
+ <div class="container">
+    <!-- Columna de filtros (izquierda en pantallas grandes) -->
+    <div class="left-column">
+        <!-- Botón para mostrar/ocultar filtros en móvil -->
+        <button id="toggleFiltersButton" class="mobile-toggle-button">
+            <i class="fas fa-filter"></i> Introducir Filtros
+        </button>
+        
+        <!-- Contenedor de filtros (oculto por defecto en móvil) -->
+        <div id="filtersContainer" class="filters">
             <h2>Filtros</h2>
             <input type="text" id="cpvFilter" placeholder="Código CPV">
             <input type="text" id="importeFilter" placeholder="Importe mínimo">
@@ -465,28 +574,42 @@
                 <option value="Concurso de Proyectos">Concurso de Proyectos</option>
             </select>
             <button onclick="checkNewFeed()">Aplicar Filtros</button>
-            <div class="load-more-container">
-                <div class="input-loading-wrapper">
-                    <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
-                    <div id="progress" class="progress-indicator"></div>
+        </div>
+
+        <!-- Botón para mostrar/ocultar carga de Atom en móvil -->
+        <button id="toggleAtomButton" class="mobile-toggle-button">
+            <i class="fas fa-history"></i> Cargar más historial
+        </button>
+
+        <!-- Contenedor de carga de Atom (oculto por defecto en móvil) -->
+        <div id="atomContainer" class="load-more-container">
+            <div class="input-loading-wrapper">
+                <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1">
+                <div id="progress" class="progress-indicator"></div>
+            </div>
+            <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>            
+            <div class="atom-list-box">
+                <h4>Atom Cargados</h4>
+                <div id="atomList" class="atom-list">
+                    <!-- Aquí se añadirán dinámicamente los Atom cargados -->
                 </div>
-                <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>
-            </div>
-            <div class="atom-box">
-                <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
-            </div>
-            <div class="description">
-                Para ampliar la base de datos es necesario que cargues más Atom.
             </div>
         </div>
 
+        <div class="description">
+            Para ampliar la base de datos es necesario que cargues más Atom.
+        </div>
+    </div>
+
         <!-- Columna de tarjetas (derecha en pantallas grandes) -->
+		<div class="right-column">
         <div class="cards">
             <p id="status" style="display: none;">🔍 Cargando datos...</p>
             <p id="error" class="error-message"></p>
             <div id="licitacionesContainer"></div>
         </div>
     </div>
+ </div>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
         const proxyUrl = "https://corsmirror.com/v1?url=";
@@ -494,6 +617,8 @@
         let allEntries = [];
         let nextFeedUrl = initialFeedUrl;
         let isProcessing = false;
+		let loadedAtoms = [];
+		let isFirstLoad = false;
 
         const estadoMapping = {
             "PRE": "Anuncio Previo",
@@ -515,6 +640,17 @@
             "8": "Subasta Electrónica",
             "9": "Concurso de Proyectos"
         };
+		// Mostrar/ocultar filtros en móvil
+		document.getElementById("toggleFiltersButton").addEventListener("click", () => {
+		    const filtersContainer = document.getElementById("filtersContainer");
+		    filtersContainer.classList.toggle("visible");
+		});
+
+		// Mostrar/ocultar carga de Atom en móvil
+		document.getElementById("toggleAtomButton").addEventListener("click", () => {
+		    const atomContainer = document.getElementById("atomContainer");
+		    atomContainer.classList.toggle("visible");
+		});
 
         function formatDate(dateString) {
             if (!dateString || dateString === "N/A") return "N/A";
@@ -596,6 +732,12 @@
         async function loadFeedsInBatches(maxFeeds) {
             let feedCount = 0;
             let currentFeedUrl = nextFeedUrl;
+
+            // Limpiar la lista de Atom cargados (excepto "Completo3.atom") antes de añadir nuevos
+            if (!isFirstLoad) {
+                loadedAtoms = loadedAtoms.filter(atom => atom.name === "Completo3.atom");
+            }
+
             while (currentFeedUrl && feedCount < maxFeeds) {
                 document.getElementById("progress").innerText = `Cargando historial ${feedCount + 1}...`;
                 try {
@@ -608,6 +750,21 @@
                     const xmlDoc = parser.parseFromString(text, "text/xml");
                     const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
                     allEntries.push(...feedEntries);
+
+                    // Añadir "Completo3.atom" solo en la primera carga
+                    if (isFirstLoad) {
+                        loadedAtoms.push({ name: "Completo3.atom", url: currentFeedUrl });
+                        isFirstLoad = false; // Marcar que ya se añadió
+                    }
+
+                    // Extraer solo la parte del nombre después de "Completo3_"
+                    const atomName = currentFeedUrl.split("Completo3_").pop(); // Obtener la parte después de "Completo3_"
+                    if (atomName !== "Completo3.atom") { // Evitar duplicados
+                        loadedAtoms.push({ name: atomName, url: currentFeedUrl });
+                    }
+
+                    updateAtomList(); // Actualizar la lista visual
+
                     const nextLink = xmlDoc.querySelector('link[rel="next"]');
                     currentFeedUrl = nextLink ? nextLink.getAttribute("href") : null;
                     feedCount++;
@@ -623,6 +780,62 @@
             }
             nextFeedUrl = currentFeedUrl;
             fetchAndDisplayLicitaciones(allEntries);
+        }
+		
+		       
+        function updateAtomList() {
+            const atomListContainer = document.getElementById("atomList");
+            atomListContainer.innerHTML = ""; // Limpiar la lista
+
+            loadedAtoms.forEach((atom, index) => {
+                const atomElement = document.createElement("a"); // Usar <a> en lugar de <div>
+                atomElement.textContent = atom.name; // Mostrar el nombre del Atom
+                atomElement.href = atom.url; // Establecer la URL del Atom
+                atomElement.target = "_blank"; // Abrir en una nueva pestaña
+                atomElement.style.display = "block"; // Hacer que se comporte como un bloque
+                atomElement.style.padding = "5px";
+                atomElement.style.color = "#007bff";
+                atomElement.style.textDecoration = "none";
+                atomElement.style.borderBottom = "1px solid #eee";
+                atomElement.style.cursor = "pointer";
+
+                // Estilo al pasar el ratón
+                atomElement.addEventListener("mouseenter", () => {
+                    atomElement.style.backgroundColor = "#f9f9f9";
+                });
+                atomElement.addEventListener("mouseleave", () => {
+                    atomElement.style.backgroundColor = "transparent";
+                });
+
+                atomListContainer.appendChild(atomElement);
+            });
+        }
+
+        async function loadAtomFeed(url) {
+            if (isProcessing) return;
+            isProcessing = true;
+            try {
+                document.getElementById("status").innerText = "🔍 Cargando datos...";
+                document.getElementById("status").style.display = "block";
+                document.getElementById("error").innerText = "";
+
+                const response = await fetchWithTimeout(url);
+                if (!response.ok) {
+                    throw new Error(`No se pudo obtener el Atom: ${url}. Estado: ${response.status}`);
+                }
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(text, "text/xml");
+                const feedEntries = Array.from(xmlDoc.querySelectorAll("entry"));
+                allEntries = feedEntries; 
+                fetchAndDisplayLicitaciones(allEntries);
+            } catch (error) {
+                console.error(error);
+                document.getElementById("error").innerText = `❌ Error en loadAtomFeed: ${error.message}`;
+            } finally {
+                isProcessing = false;
+                document.getElementById("status").style.display = "none";
+            }
         }
 
         function toggleVisibility(button) {
@@ -649,33 +862,30 @@
             return `${day}/${month}/${year}`;
         }
 
-function formatTime(dateString) {
-    if (!dateString || dateString === "N/A") return "N/A";
-    const date = new Date(dateString);
-    if (isNaN(date)) return "N/A";
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    return `${hours}:${minutes}`;
-}
+		function formatTime(dateString) {
+		    if (!dateString || dateString === "N/A") return "N/A";
+		    const date = new Date(dateString);
+		    if (isNaN(date)) return "N/A";
+ 		    const hours = String(date.getHours()).padStart(2, '0');
+ 		    const minutes = String(date.getMinutes()).padStart(2, '0');
+		    return `${hours}:${minutes}`;
+		}
 
-const tipoMapping = {
-    "1": "Suministros",
-    "2": "Servicios",
-    "3": "Obras",
-    "21": "Gestión de Servicios Públicos",
-    "31": "Concesión de Obras Públicas",
-    "40": "Colaboración entre el sector público y sector privado",
-    "7": "Administrativo especial",
-    "8": "Privado",
-    "50": "Patrimonial",
-    "999": "Otros"
-};
+		const tipoMapping = {
+		    "1": "Suministros",
+		    "2": "Servicios",
+		    "3": "Obras",
+		    "21": "Gestión de Servicios Públicos",
+		    "31": "Concesión de Obras Públicas",
+		    "40": "Colaboración entre el sector público y sector privado",
+		    "7": "Administrativo especial",
+		    "8": "Privado",
+		    "50": "Patrimonial",
+		    "999": "Otros"
+		};
 
 function fetchAndDisplayLicitaciones(entries) {
     try {
-        const atomLinkElement = document.getElementById("atomLink");
-        atomLinkElement.href = nextFeedUrl || initialFeedUrl;
-        atomLinkElement.innerText = `Ver el último Atom (${nextFeedUrl ? "Formato XML" : "Inicial"})`;
         let cardsContent = "";
         const cpvFilter = document.getElementById("cpvFilter").value.toLowerCase();
         const importeFilterValue = document.getElementById("importeFilter").value;
