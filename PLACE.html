@@ -62,8 +62,10 @@
             </select>
             <button onclick="checkNewFeed()">Aplicar Filtros</button>
             <div class="load-more-container">
-                <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
-                <div id="progress" class="progress-indicator"></div>
+                <div class="input-loading-wrapper">
+                    <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
+                    <div id="progress" class="progress-indicator"></div>
+                </div>
                 <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>
             </div>
             <div class="atom-box">
