@@ -8,83 +8,79 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-<div class="container">
-    <!-- Columna de Filtros -->
-    <div class="filters">
-        <h2>Filtros</h2>
-        <input type="text" id="cpvFilter" placeholder="Código CPV">
-        <input type="text" id="importeFilter" placeholder="Importe mínimo">
-        <input type="text" id="clienteFilter" placeholder="Entidad adjudicadora">
-        <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
-        <input type="text" id="ciudadFilter" placeholder="Ciudad">
-        <select id="tipoFilter">
-            <option value="">Tipo</option>
-            <option value="1">Suministros</option>
-            <option value="2">Servicios</option>
-            <option value="3">Obras</option>
-            <option value="21">Gestión de Servicios Públicos</option>
-            <option value="31">Concesión de Obras Públicas</option>
-            <option value="40">Colaboración entre el sector público y sector privado</option>
-            <option value="7">Administrativo especial</option>
-            <option value="8">Privado</option>
-            <option value="50">Patrimonial</option>
-            <option value="999">Otros</option>
-        </select>
-        <select id="estadoFilter">
-            <option value="">Estado</option>
-            <option value="Anuncio Previo">Anuncio Previo</option>
-            <option value="EN PLAZO">EN PLAZO</option>
-            <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
-            <option value="Adjudicada">Adjudicada</option>
-            <option value="Resuelta">Resuelta</option>
-            <option value="Anulada">Anulada</option>
-        </select>
-        <select id="procedimientoFilter">
-            <option value="">Tipo de procedimiento</option>
-            <option value="Abierto">Abierto</option>
-            <option value="Restringido">Restringido</option>
-            <option value="Negociado con Publicidad">Negociado con Publicidad</option>
-            <option value="Negociado sin Publicidad">Negociado sin Publicidad</option>
-            <option value="Diálogo Competitivo">Diálogo Competitivo</option>
-            <option value="Contrato Menor">Contrato Menor</option>
-            <option value="Asociación para la Innovación">Asociación para la Innovación</option>
-            <option value="Subasta Electrónica">Subasta Electrónica</option>
-            <option value="Concurso de Proyectos">Concurso de Proyectos</option>
-        </select>
-        <button onclick="checkNewFeed()">Aplicar Filtros</button>
-<div class="load-more-container">
-    <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
-	<div id="progress" class="progress-indicator"></div>
-    <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>
-</div>
-
-        <!-- Cuadro para "Ver el último Atom" -->
-        <div class="atom-box">
-            <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
-        </div>
-
-        <!-- Descripción bajo los filtros -->
-        <div class="description">
-            Para ampliar la base de datos es necesario que cargues más Atom.
+    <!-- Título y descripción (siempre arriba) -->
+    <div class="header">
+        <h3>Anuncios Licitaciones</h3>
+        <div class="info-box">
+            Creado para revisar los anuncios que cada día se publican en la base de datos.
         </div>
     </div>
 
-    <!-- Columna de Tarjetas -->
-    <div class="cards">
-        <!-- Título y descripción (visible en pantallas grandes) -->
-        <div class="header">
-            <h3>Anuncios Licitaciones</h3>
-            <div class="info-box">
-                Creado para revisar los anuncios que cada día se publican en la base de datos.
+    <!-- Contenedor principal para filtros y tarjetas -->
+    <div class="container">
+        <!-- Columna de filtros (izquierda en pantallas grandes) -->
+        <div class="filters">
+            <h2>Filtros</h2>
+            <input type="text" id="cpvFilter" placeholder="Código CPV">
+            <input type="text" id="importeFilter" placeholder="Importe mínimo">
+            <input type="text" id="clienteFilter" placeholder="Entidad adjudicadora">
+            <input type="text" id="expedienteFilter" placeholder="Nº de Expediente">
+            <input type="text" id="ciudadFilter" placeholder="Ciudad">
+            <select id="tipoFilter">
+                <option value="">Tipo</option>
+                <option value="1">Suministros</option>
+                <option value="2">Servicios</option>
+                <option value="3">Obras</option>
+                <option value="21">Gestión de Servicios Públicos</option>
+                <option value="31">Concesión de Obras Públicas</option>
+                <option value="40">Colaboración entre el sector público y sector privado</option>
+                <option value="7">Administrativo especial</option>
+                <option value="8">Privado</option>
+                <option value="50">Patrimonial</option>
+                <option value="999">Otros</option>
+            </select>
+            <select id="estadoFilter">
+                <option value="">Estado</option>
+                <option value="Anuncio Previo">Anuncio Previo</option>
+                <option value="EN PLAZO">EN PLAZO</option>
+                <option value="PENDIENTE DE ADJUDICACION">PENDIENTE DE ADJUDICACION</option>
+                <option value="Adjudicada">Adjudicada</option>
+                <option value="Resuelta">Resuelta</option>
+                <option value="Anulada">Anulada</option>
+            </select>
+            <select id="procedimientoFilter">
+                <option value="">Tipo de procedimiento</option>
+                <option value="Abierto">Abierto</option>
+                <option value="Restringido">Restringido</option>
+                <option value="Negociado con Publicidad">Negociado con Publicidad</option>
+                <option value="Negociado sin Publicidad">Negociado sin Publicidad</option>
+                <option value="Diálogo Competitivo">Diálogo Competitivo</option>
+                <option value="Contrato Menor">Contrato Menor</option>
+                <option value="Asociación para la Innovación">Asociación para la Innovación</option>
+                <option value="Subasta Electrónica">Subasta Electrónica</option>
+                <option value="Concurso de Proyectos">Concurso de Proyectos</option>
+            </select>
+            <button onclick="checkNewFeed()">Aplicar Filtros</button>
+            <div class="load-more-container">
+                <input type="number" id="maxFeedsInput" placeholder="Nº de historial" min="1" value="1"> 
+                <div id="progress" class="progress-indicator"></div>
+                <button id="loadMoreButton" onclick="loadMoreFeeds()">Cargar más historial</button>
+            </div>
+            <div class="atom-box">
+                <a id="atomLink" class="atom-link" href="#" target="_blank">Ver el último Atom</a>
+            </div>
+            <div class="description">
+                Para ampliar la base de datos es necesario que cargues más Atom.
             </div>
         </div>
 
-        <!-- Estado de carga y tarjetas -->
-        <p id="status" style="display: none;">🔍 Cargando datos...</p>
-        <p id="error" class="error-message"></p>
-        <div id="licitacionesContainer"></div>
+        <!-- Columna de tarjetas (derecha en pantallas grandes) -->
+        <div class="cards">
+            <p id="status" style="display: none;">🔍 Cargando datos...</p>
+            <p id="error" class="error-message"></p>
+            <div id="licitacionesContainer"></div>
+        </div>
     </div>
-</div>
     <script>
         const initialFeedUrl = "https://contrataciondelestado.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom";
         const proxyUrl = "https://corsmirror.com/v1?url=";
