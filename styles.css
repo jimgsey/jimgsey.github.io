@@ -115,13 +115,6 @@ body {
 
 .load-more-container {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 10px;
-}
-
-.load-more-container {
-    display: flex;
     flex-direction: column; /* Cambiar a columna para que el mensaje esté debajo */
     align-items: flex-start; /* Alinear a la izquierda */
     gap: 10px;
