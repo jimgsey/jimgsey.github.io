@@ -21,14 +21,19 @@ body {
     .filters {
         width: 300px;
         padding: 15px;
-        background-color: #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: transparent;
+        box-shadow: none;
         margin-bottom: 0;
         border-radius: 10px;
     }
 
     .cards {
         flex: 1;
+    }
+
+    .header {
+        display: block; /* Mostrar en escritorio */
+        margin-bottom: 20px;
     }
 }
 
@@ -39,27 +44,46 @@ body {
         flex-direction: column;
     }
 
+    .header {
+        order: 1; /* Título y descripción primero */
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
     .filters {
+        order: 2; /* Filtros segundo */
         width: 100%;
         padding: 10px;
-        background-color: #fff;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        background-color: transparent;
+        box-shadow: none;
         margin-bottom: 10px;
         border-radius: 10px;
     }
 
     .cards {
+        order: 3; /* Tarjetas tercero */
         width: 100%;
-    }
-
-    /* Orden en móviles: título y descripción primero */
-    .cards h3,
-    .cards .info-box {
-        order: -1;
-        margin-bottom: 20px;
     }
 }
 
+/* Estilos para el título y descripción */
+.header h3 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.header .info-box {
+    background-color: #f9f9f9;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    text-align: center;
+    max-width: 80%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Estilos para los filtros */
 .filters h2 {
     margin-top: 0;
     font-size: 18px;
@@ -75,6 +99,7 @@ body {
     border-radius: 5px;
     font-size: 14px;
     box-sizing: border-box;
+    background-color: rgba(255, 255, 255, 0.8);
 }
 
 .filters button {
@@ -86,6 +111,54 @@ body {
 
 .filters button:hover {
     background-color: #0056b3;
+}
+
+.load-more-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.load-more-container {
+    display: flex;
+    flex-direction: column; /* Cambiar a columna para que el mensaje esté debajo */
+    align-items: flex-start; /* Alinear a la izquierda */
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.load-more-container input {
+    width: 80px; /* Reducir el ancho del campo numérico */
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+#loadMoreButton {
+    width: 100%; /* Ocupar todo el ancho disponible */
+    padding: 8px;
+    background-color: #007bff; /* Azul por defecto */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#loadMoreButton.loading {
+    background-color: #007bff; /* Azul mientras carga */
+}
+
+#loadMoreButton.finished {
+    background-color: #28a745; /* Verde cuando termina */
+}
+
+.progress-indicator {
+    font-weight: bold;
+    font-size: 12px;
+    color: #555; /* Color del texto */
+    margin-top: 0px; /* Espacio entre el botón y el mensaje */
 }
 
 .cards {
@@ -124,6 +197,8 @@ body {
 }
 
 .card .cpv {
+    display: inline-flex; /* Alinear el texto y el botón en la misma línea */
+    align-items: center; /* Centrar verticalmente */
     margin: 5px 0;
     color: #555;
 }
@@ -135,11 +210,17 @@ body {
     cursor: pointer;
     padding: 0;
     margin-left: 5px;
+    display: inline-flex; /* Asegurar que el botón esté en línea */
+    align-items: center; /* Centrar verticalmente */
 }
 
 .card .cpv .cpv-list-hidden {
-    display: none;
-    margin-top: 5px;
+    display: none; /* Ocultar por defecto */
+    margin-left: 5px; /* Espacio entre el botón y los CPV adicionales */
+}
+
+.card .cpv .cpv-list-hidden.visible {
+    display: inline; /* Mostrar en la misma línea */
 }
 
 .card .cliente {
@@ -214,6 +295,10 @@ body {
     margin-top: 10px;
 }
 
+.document-list.visible {
+    display: block;
+}
+
 .error-message {
     color: red;
     font-weight: bold;
@@ -277,4 +362,63 @@ body {
     max-width: 80%;
     margin-left: auto;
     margin-right: auto;
+}
+
+/* Lotes */
+.card .lote {
+    margin: 10px 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.card .lote strong {
+    color: #333;
+}
+
+.card-details .fa-map-marker-alt {
+    color: #007bff;
+    margin-right: 5px;
+}
+
+.contacto {
+    margin: 5px 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.contacto span {
+    display: block;
+    margin: 3px 0;
+}
+
+.contacto .fa-phone,
+.contacto .fa-envelope {
+    color: #007bff;
+    margin-right: 5px;
+}
+
+/* Estilos para los estados */
+.estado-anuncio,
+.estado-en-plazo,
+.estado-otros {
+    font-size: 11px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-left: 1px;
+}
+
+.estado-anuncio {
+    background-color: #ffcc00;
+    color: #000;
+}
+
+.estado-en-plazo {
+    background-color: #4caf50;
+    color: #fff;
+}
+
+.estado-otros {
+    background-color: #f44336;
+    color: #fff;
 }
