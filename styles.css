@@ -95,36 +95,43 @@ body {
 
 .load-more-container {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-    margin-top: 10px;
+    flex-direction: column; /* Apila los elementos verticalmente */
+    gap: 10px; /* Espacio entre el input/texto y el botón */
 }
 
-.load-more-container input {
-    width: 80px;
+.input-loading-wrapper {
+    display: flex; /* Coloca el input y el texto en la misma línea */
+    align-items: center; /* Centra verticalmente */
+    gap: 10px; /* Espacio entre el input y el texto */
+}
+
+#maxFeedsInput {
+    width: 90px; /* Ancho fijo para el input */
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 5px;
     font-size: 14px;
 }
 
+.progress-indicator {
+    font-weight: bold;
+    font-size: 14px;
+    color: #555;
+}
+
 #loadMoreButton {
-    width: 100%;
+    width: 100%; /* Ocupa el ancho completo */
     padding: 8px;
     background-color: #007bff;
     color: white;
     border: none;
     border-radius: 5px;
     cursor: pointer;
+    font-size: 14px;
 }
 
-#loadMoreButton.loading {
-    background-color: #007bff;
-}
-
-#loadMoreButton.finished {
-    background-color: #28a745;
+#loadMoreButton:hover {
+    background-color: #0056b3;
 }
 
 .progress-indicator {
